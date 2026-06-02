@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="auth-page">
+    <div class="auth-card">
+      <a href="/" class="navbar-brand" style="justify-content:center;margin-bottom:16px">
+        <span class="logo-icon">CAG</span>
+        <div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div>
+      </a>
+      <h2>Create Account 🚌</h2>
+      <p class="subtitle">Join thousands of travellers across Zimbabwe</p>
+      <div id="alertContainer"></div>
+      <form id="registerForm">
+        <div class="form-group">
+          <label class="form-label">👤 Full Name</label>
+          <input type="text" class="form-input" id="fullName" placeholder="e.g. Tatenda Moyo" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">📧 Email</label>
+            <input type="email" class="form-input" id="email" placeholder="you@example.co.zw" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📞 Phone</label>
+            <input type="tel" class="form-input" id="phone" placeholder="+263 77 000 0000" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔒 Password (min 6 characters)</label>
+          <input type="password" class="form-input" id="password" placeholder="Choose a strong password" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account →</button>
+        <p class="text-center mt-2" style="font-size:0.9rem">
+          Already have an account? <a href="/customer/login.html"><strong>Sign in</strong></a>
+        </p>
+        <p class="text-center mt-1" style="font-size:0.85rem">
+          <a href="/">← Back to Home</a>
+        </p>
+      </form>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const container = document.getElementById('alertContainer');
+    clearAlerts(container);
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = '⏳ Creating account...';
+    try {
+      const res = await api.auth.register({
+        full_name: document.getElementById('fullName').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value
+      });
+      localStorage.setItem('cag_token', res.token);
+      localStorage.setItem('cag_user', JSON.stringify(res.user));
+      showToast('🎉 Welcome to CAG Bus Zimbabwe, ' + res.user.full_name + '!', 'success');
+      setTimeout(() => window.location.href = '/', 600);
+    } catch (err) {
+      showAlert(err.message, 'error', container);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Account →';
+    }
+  });
+  </script>
+</body>
+</html>

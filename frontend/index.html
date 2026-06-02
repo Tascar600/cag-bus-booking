@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAG Bus Zimbabwe - Book Your Journey 🇿🇼</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="animated-bg">
+    <div class="circle"></div>
+    <div class="circle"></div>
+    <div class="circle"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Live Line -->
+  <div class="liveline">
+    <div class="container">
+      <div class="liveline-left">
+        <span class="live-dot"></span>
+        <span>🇿🇼 CAG Bus Zimbabwe</span>
+        <span class="live-stats">
+          <span>🚌 <strong id="liveBuses">24</strong> on route</span>
+          <span>🎫 <strong id="liveBookings">156</strong> booked today</span>
+        </span>
+      </div>
+      <div class="liveline-right">
+        <span class="live-clock" id="liveClock">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand">
+        <span class="logo-icon">CAG</span>
+        <div>
+          <span class="logo-text">CAG Bus</span>
+          <span class="logo-zim">ZIMBABWE 🇿🇼</span>
+        </div>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="/" class="nav-link active">🏠 Home</a></li>
+        <li><a href="/customer/my-bookings.html" class="nav-link" id="navBookings" style="display:none">🎫 My Bookings</a></li>
+        <li><a href="/customer/login.html" class="nav-link" id="navLogin">🔑 Login</a></li>
+        <li><a href="/customer/register.html" class="btn btn-primary btn-sm" id="navRegister">Sign Up Free</a></li>
+        <li style="display:none;align-items:center;gap:8px" id="navUserMenu">
+          <span class="nav-link" id="navUserName" style="cursor:default;background:var(--primary-bg);border-radius:50px;padding:4px 16px;font-weight:600"></span>
+          <a href="/customer/profile.html" class="nav-link">👤 Profile</a>
+          <a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-particles" id="heroParticles"></div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>🇿🇼 Trusted by 50,000+ Zimbabwean travellers</span>
+        </div>
+        <h1>Travel Zimbabwe with <span class="highlight">CAG Bus</span></h1>
+        <p>Safe, comfortable & affordable bus travel across all provinces — from Harare to Victoria Falls, Bulawayo to Mutare.</p>
+      </div>
+
+      <div class="search-card">
+        <form id="searchForm" onsubmit="return false;">
+          <div class="search-grid">
+            <div class="form-group">
+              <label class="form-label">📍 From</label>
+              <div class="autocomplete-wrap">
+                <input type="text" class="form-input autocomplete-input" id="searchOrigin" placeholder="Type or select departure city..." autocomplete="off" required>
+                <div class="autocomplete-dropdown" id="originDropdown"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">📍 To</label>
+              <div class="autocomplete-wrap">
+                <input type="text" class="form-input autocomplete-input" id="searchDestination" placeholder="Type or select destination..." autocomplete="off" required>
+                <div class="autocomplete-dropdown" id="destDropdown"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">📅 Travel Date</label>
+              <input type="date" class="form-input" id="searchDate" required>
+            </div>
+            <button type="submit" class="btn btn-gold btn-lg" id="searchBtn">
+              🔍 Search Buses
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quick links -->
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap;position:relative;z-index:2">
+        <button class="quick-route btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:8px 20px;cursor:pointer;transition:var(--transition);font-size:0.82rem" data-origin="Harare" data-destination="Bulawayo">🚌 Harare → Bulawayo</button>
+        <button class="quick-route btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:8px 20px;cursor:pointer;transition:var(--transition);font-size:0.82rem" data-origin="Harare" data-destination="Mutare">🚌 Harare → Mutare</button>
+        <button class="quick-route btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:8px 20px;cursor:pointer;transition:var(--transition);font-size:0.82rem" data-origin="Bulawayo" data-destination="Victoria Falls">🚌 Bulawayo → Vic Falls</button>
+        <button class="quick-route btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:8px 20px;cursor:pointer;transition:var(--transition);font-size:0.82rem" data-origin="Harare" data-destination="Masvingo">🚌 Harare → Masvingo</button>
+        <button class="quick-route btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:8px 20px;cursor:pointer;transition:var(--transition);font-size:0.82rem" data-origin="Harare" data-destination="Victoria Falls">🚌 Harare → Vic Falls</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2 class="section-title">Why Travel with CAG Bus?</h2>
+        <p class="section-subtitle" style="margin-left:auto;margin-right:auto">Zimbabwe's most reliable bus service connecting all provinces</p>
+      </div>
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="feature-icon">🇿🇼</div>
+          <h4>Nationwide Coverage</h4>
+          <p>Serving all 10 provinces of Zimbabwe — from Harare to Bulawayo, Mutare to Victoria Falls, and every growth point in between.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h4>Safe & Secure</h4>
+          <p>Modern GPS-tracked buses with professional drivers. Real-time journey monitoring for your peace of mind.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <h4>Easy Booking</h4>
+          <p>Book online, choose your seat, get instant e-tickets with QR codes. Pay in USD or ZiG at competitive rates.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏰</div>
+          <h4>Punctual Departures</h4>
+          <p>We value your time. 98% on-time departure rate across our entire Zimbabwe network.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎫</div>
+          <h4>Digital E-Tickets</h4>
+          <p>No paper needed. Show your QR code ticket on your phone. Download, print, or share with ease.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <h4>24/7 Support</h4>
+          <p>Need help? Our Zimbabwe-based customer service team is available around the clock. Call or WhatsApp.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Routes -->
+  <section class="section" style="background:var(--zm-white)">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2 class="section-title">Popular Zimbabwe Routes</h2>
+        <p class="section-subtitle" style="margin-left:auto;margin-right:auto">Most booked routes by fellow travellers</p>
+      </div>
+      <div class="grid-2" id="popularRoutes">
+        <!-- Will be populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="section" style="background:var(--primary-gradient);color:white">
+    <div class="container">
+      <div class="stats-grid" id="statsCounter">
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15)">
+          <div class="stat-icon" style="background:rgba(255,255,255,0.2);color:white">🚌</div>
+          <div class="stat-info"><h3 id="statBuses">24+</h3><p style="color:rgba(255,255,255,0.8)">Buses in Fleet</p></div>
+        </div>
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15)">
+          <div class="stat-icon" style="background:rgba(255,255,255,0.2);color:white">🛣️</div>
+          <div class="stat-info"><h3 id="statRoutes">80+</h3><p style="color:rgba(255,255,255,0.8)">Routes Nationwide</p></div>
+        </div>
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15)">
+          <div class="stat-icon" style="background:rgba(255,255,255,0.2);color:white">👥</div>
+          <div class="stat-info"><h3 id="statCustomers">50K+</h3><p style="color:rgba(255,255,255,0.8)">Happy Travellers</p></div>
+        </div>
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15)">
+          <div class="stat-icon" style="background:rgba(255,255,255,0.2);color:white">⭐</div>
+          <div class="stat-info"><h3 id="statRating">4.8</h3><p style="color:rgba(255,255,255,0.8)">Customer Rating</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Destinations Grid -->
+  <section class="section">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2 class="section-title">Explore Zimbabwe</h2>
+        <p class="section-subtitle" style="margin-left:auto;margin-right:auto">Destinations we serve across the country</p>
+      </div>
+      <div class="grid-4" id="destinationsGrid"></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section" style="background:var(--zm-black);color:white;text-align:center">
+    <div class="container">
+      <h2 style="font-family:var(--font-display);font-size:2rem;margin-bottom:12px">Ready to Travel Zimbabwe?</h2>
+      <p style="opacity:0.8;margin-bottom:24px;max-width:500px;margin-left:auto;margin-right:auto">Book your seat now and experience the best bus travel in Zimbabwe. Safe journeys start with CAG Bus.</p>
+      <a href="#searchCard" class="btn btn-gold btn-lg" onclick="document.querySelector('.autocomplete-input').focus()">🎟️ Book Your Seat Now</a>
+      <p style="margin-top:16px;opacity:0.6;font-size:0.85rem">🇿🇼 Proudly Zimbabwean • Serving all provinces since 2010</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background:var(--zm-black);color:rgba(255,255,255,0.6);padding:40px 0;text-align:center;font-size:0.85rem;border-top:1px solid rgba(255,255,255,0.05)">
+    <div class="container">
+      <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:24px">
+        <div><strong style="color:white">CAG Bus Zimbabwe</strong><br>Harare • Bulawayo • Mutare • Victoria Falls</div>
+        <div><strong style="color:white">Contact</strong><br>+263 78 000 1234<br>info@cagbus.co.zw</div>
+        <div><strong style="color:white">Quick Links</strong><br><a href="/customer/login.html" style="color:rgba(255,255,255,0.6)">Login</a> • <a href="/customer/register.html" style="color:rgba(255,255,255,0.6)">Register</a> • <a href="/admin/login.html" style="color:rgba(255,255,255,0.6)">Admin</a></div>
+      </div>
+      <p>&copy; 2024 CAG Bus Zimbabwe. All rights reserved. 🇿🇼</p>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script>
+  // ===== HERO PARTICLES =====
+  (function createParticles() {
+    const container = document.getElementById('heroParticles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 8 + 's';
+      p.style.animationDuration = (6 + Math.random() * 6) + 's';
+      p.style.width = (2 + Math.random() * 4) + 'px';
+      p.style.height = p.style.width;
+      container.appendChild(p);
+    }
+  })();
+
+  // ===== NAV TOGGLE =====
+  document.getElementById('navToggle').addEventListener('click', () => {
+    document.getElementById('navMenu').classList.toggle('show');
+  });
+
+  // ===== NAV SCROLL EFFECT =====
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('navbar');
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // ===== AUTH STATE =====
+  const token = localStorage.getItem('cag_token');
+  if (token) {
+    const user = JSON.parse(localStorage.getItem('cag_user') || '{}');
+    document.getElementById('navLogin').style.display = 'none';
+    document.getElementById('navRegister').style.display = 'none';
+    document.getElementById('navUserMenu').style.display = 'flex';
+    document.getElementById('navBookings').style.display = 'block';
+    document.getElementById('navUserName').textContent = user.full_name || 'User';
+  }
+  document.getElementById('navLogout')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  // ===== AUTOCOMPLETE ENGINE =====
+  let allCities = [];
+
+  function buildAutocomplete(inputId, dropdownId, items, onSelect) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    let selectedValue = '';
+
+    function closeDropdown() {
+      dropdown.classList.remove('show');
+    }
+
+    function highlightMatch(text, query) {
+      if (!query) return text;
+      const re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      return text.replace(re, '<strong style="color:var(--zm-gold-dark)">$1</strong>');
+    }
+
+    function filterAndShow() {
+      const val = input.value.trim();
+      if (!val) {
+        dropdown.innerHTML = items.map(c => '<div class="dropdown-item" data-value="' + c + '">' + c + '</div>').join('');
+        dropdown.classList.add('show');
+        return;
+      }
+      const matches = items.filter(c => c.toLowerCase().includes(val.toLowerCase()));
+      if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === val.toLowerCase())) {
+        dropdown.classList.remove('show');
+        return;
+      }
+      dropdown.innerHTML = matches.map(c => '<div class="dropdown-item" data-value="' + c + '">' + highlightMatch(c, val) + '</div>').join('');
+      dropdown.classList.add('show');
+    }
+
+    input.addEventListener('input', function() {
+      selectedValue = '';
+      filterAndShow();
+    });
+
+    input.addEventListener('focus', function() {
+      if (!dropdown.classList.contains('show')) filterAndShow();
+    });
+
+    input.addEventListener('blur', function() {
+      setTimeout(closeDropdown, 200);
+    });
+
+    input.addEventListener('keydown', function(e) {
+      const items = dropdown.querySelectorAll('.dropdown-item');
+      const active = dropdown.querySelector('.dropdown-item.active');
+      let idx = -1;
+      if (active) idx = Array.from(items).indexOf(active);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = Math.min(idx + 1, items.length - 1);
+        items.forEach(i => i.classList.remove('active'));
+        if (items[next]) items[next].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = Math.max(idx - 1, 0);
+        items.forEach(i => i.classList.remove('active'));
+        if (items[prev]) items[prev].classList.add('active');
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (active) { active.click(); return; }
+        if (input.value.trim() && items.length > 0) { items[0].click(); }
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    });
+
+    dropdown.addEventListener('click', function(e) {
+      const item = e.target.closest('.dropdown-item');
+      if (!item) return;
+      selectedValue = item.dataset.value;
+      input.value = selectedValue;
+      closeDropdown();
+      if (onSelect) onSelect(selectedValue);
+    });
+
+    return {
+      getValue: () => selectedValue || input.value.trim(),
+      setValue: (v) => { input.value = v; selectedValue = v; },
+      clear: () => { input.value = ''; selectedValue = ''; },
+      close: closeDropdown
+    };
+  }
+
+  // ===== LOAD CITIES AND INIT =====
+  let originAutocomplete, destAutocomplete;
+
+  api.routes.origins().then(origins => {
+    allCities = origins;
+
+    originAutocomplete = buildAutocomplete('searchOrigin', 'originDropdown', allCities, function(origin) {
+      // When origin selected, load destinations
+      const destInput = document.getElementById('searchDestination');
+      destInput.value = '';
+      destInput.disabled = true;
+      destInput.placeholder = 'Loading destinations...';
+      if (destAutocomplete) destAutocomplete.clear();
+
+      api.routes.destinations(origin).then(dests => {
+        destInput.disabled = false;
+        destInput.placeholder = 'Type or select destination...';
+        destAutocomplete = buildAutocomplete('searchDestination', 'destDropdown', dests);
+      });
+    });
+  });
+
+  // ===== SET MIN DATE =====
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('searchDate').min = today;
+  document.getElementById('searchDate').value = today;
+
+  // ===== SEARCH =====
+  function doSearch() {
+    const origin = originAutocomplete ? originAutocomplete.getValue() : document.getElementById('searchOrigin').value;
+    const dest = destAutocomplete ? destAutocomplete.getValue() : document.getElementById('searchDestination').value;
+    const date = document.getElementById('searchDate').value;
+    if (!origin || !dest) {
+      showToast('Please select both origin and destination', 'warning');
+      return;
+    }
+    if (origin === dest) {
+      showToast('Origin and destination must be different', 'warning');
+      return;
+    }
+    window.location.href = `/customer/search-results.html?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&date=${encodeURIComponent(date)}`;
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', doSearch);
+  document.getElementById('searchForm').addEventListener('submit', (e) => { e.preventDefault(); doSearch(); });
+
+  // ===== QUICK ROUTES =====
+  document.querySelectorAll('.quick-route').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const origin = this.dataset.origin;
+      const dest = this.dataset.destination;
+      const date = new Date().toISOString().split('T')[0];
+      window.location.href = `/customer/search-results.html?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&date=${encodeURIComponent(date)}`;
+    });
+  });
+
+  // ===== POPULAR ROUTES =====
+  async function loadPopularRoutes() {
+    const container = document.getElementById('popularRoutes');
+    try {
+      const origins = await api.routes.origins();
+      // Show top routes
+      const popular = [
+        ['Harare', 'Bulawayo', '4-5 hrs', 'From $28'],
+        ['Harare', 'Mutare', '3.5 hrs', 'From $18'],
+        ['Bulawayo', 'Victoria Falls', '3.5 hrs', 'From $22'],
+        ['Harare', 'Masvingo', '3.5 hrs', 'From $18'],
+        ['Harare', 'Victoria Falls', '8-9 hrs', 'From $65'],
+        ['Harare', 'Beitbridge', '7 hrs', 'From $42'],
+        ['Gweru', 'Bulawayo', '2 hrs', 'From $14'],
+        ['Mutare', 'Nyanga', '1.5 hrs', 'From $10']
+      ];
+      container.innerHTML = popular.map(([o, d, dur, price]) => `
+        <div class="route-card">
+          <div class="route-info">
+            <strong>🇿🇼 ${o} → ${d}</strong><br>
+            <span>${dur} • ${price}</span>
+          </div>
+          <button class="btn btn-primary btn-sm quickRoute" data-origin="${o}" data-destination="${d}">View →</button>
+        </div>
+      `).join('');
+      document.querySelectorAll('.quickRoute').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const date = new Date().toISOString().split('T')[0];
+          window.location.href = `/customer/search-results.html?origin=${encodeURIComponent(this.dataset.origin)}&destination=${encodeURIComponent(this.dataset.destination)}&date=${encodeURIComponent(date)}`;
+        });
+      });
+    } catch(e) {
+      container.innerHTML = '<p class="text-muted">Unable to load routes</p>';
+    }
+  }
+  loadPopularRoutes();
+
+  // ===== DESTINATIONS GRID =====
+  const zimbabweDestinations = [
+    { name: 'Harare', desc: 'Capital City', emoji: '🏛️' },
+    { name: 'Bulawayo', desc: 'City of Kings', emoji: '👑' },
+    { name: 'Mutare', desc: 'Eastern Gateway', emoji: '⛰️' },
+    { name: 'Victoria Falls', desc: 'Natural Wonder', emoji: '🌊' },
+    { name: 'Masvingo', desc: 'Great Zimbabwe', emoji: '🏰' },
+    { name: 'Gweru', desc: 'Midlands Hub', emoji: '📍' },
+    { name: 'Kariba', desc: 'Lake Paradise', emoji: '🌅' },
+    { name: 'Nyanga', desc: 'Highlands Escape', emoji: '🌲' }
+  ];
+  document.getElementById('destinationsGrid').innerHTML = zimbabweDestinations.map(d => `
+    <div class="card text-center" style="padding:24px;cursor:pointer" onclick="quickSearch('${d.name}')">
+      <div style="font-size:2.5rem;margin-bottom:8px">${d.emoji}</div>
+      <h4 style="font-size:1rem">${d.name}</h4>
+      <p class="text-muted" style="font-size:0.82rem">${d.desc}</p>
+      <button class="btn btn-secondary btn-sm mt-1">Find Buses →</button>
+    </div>
+  `).join('');
+
+  function quickSearch(city) {
+    if (originAutocomplete) {
+      originAutocomplete.setValue(city);
+      // Trigger destination loading
+      api.routes.destinations(city).then(dests => {
+        const destInput = document.getElementById('searchDestination');
+        destInput.value = '';
+        destInput.disabled = false;
+        destAutocomplete = buildAutocomplete('searchDestination', 'destDropdown', dests);
+        document.getElementById('searchDate').focus();
+      });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ===== LIVE STATS UPDATES =====
+  setInterval(async () => {
+    try {
+      if (document.getElementById('liveBuses')) {
+        // Realistic live counter animation
+        const busesEl = document.getElementById('liveBuses');
+        const currB = parseInt(busesEl.textContent) || 24;
+        busesEl.textContent = currB + (Math.random() > 0.5 ? 1 : -1) + 1;
+
+        const bkEl = document.getElementById('liveBookings');
+        const currBk = parseInt(bkEl.textContent) || 156;
+        bkEl.textContent = currBk + Math.floor(Math.random() * 3);
+      }
+    } catch(e) {}
+  }, 8000);
+
+  // Welcome toast
+  setTimeout(() => {
+    showToast('🇿🇼 Welcome to CAG Bus Zimbabwe! Book your journey today.', 'info', 5000);
+  }, 1500);
+  </script>
+</body>
+</html>

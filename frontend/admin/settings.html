@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - CAG Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a><a href="/admin/buses.html">🚌 Buses</a><a href="/admin/routes.html">🛣 Routes & Schedules</a><a href="/admin/bookings.html">🎫 Bookings</a><a href="/admin/payments.html">💰 Payments</a><a href="/admin/customers.html">👥 Customers</a><a href="/admin/settings.html" class="active">⚙ Settings</a><a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+
+    <main class="admin-main fade-in">
+      <div class="admin-header">
+        <h1>Settings</h1>
+      </div>
+      <div id="alertContainer"></div>
+
+      <div class="grid-2">
+        <!-- System Info -->
+        <div class="card mb-3">
+          <div class="card-header"><h4>System Information</h4></div>
+          <div class="card-body" id="systemInfo">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Admin Profile -->
+        <div class="card mb-3">
+          <div class="card-header"><h4>Admin Profile</h4></div>
+          <div class="card-body">
+            <p class="text-muted mb-1">You are logged in as:</p>
+            <p style="font-size:1.1rem;font-weight:600" id="adminProfileName"></p>
+            <p class="text-muted" id="adminProfileEmail"></p>
+            <p class="text-muted" id="adminProfileRole"></p>
+            <hr style="margin:16px 0">
+            <a href="/admin/login.html" class="btn btn-secondary">Switch Account</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration -->
+      <div class="card">
+        <div class="card-header"><h4>Configuration</h4></div>
+        <div class="card-body" id="configContent">
+          <div class="flex-between mb-1"><span>Booking Reference Prefix:</span><span class="badge badge-primary">CAG</span></div>
+          <div class="flex-between mb-1"><span>Tax Rate:</span><span class="badge badge-primary">5%</span></div>
+          <div class="flex-between mb-1"><span>Max Seats Per Booking:</span><span class="badge badge-primary">10</span></div>
+          <div class="flex-between mb-1"><span>Payment Gateway:</span><span class="badge badge-primary">Simulated</span></div>
+          <div class="flex-between mb-1"><span>Currency:</span><span class="badge badge-primary">USD</span></div>
+          <div class="flex-between mb-1"><span>Version:</span><span class="badge badge-primary">1.0.0</span></div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card mt-3" style="border:1px solid var(--danger)">
+        <div class="card-header" style="color:var(--danger)"><h4>⚠ Danger Zone</h4></div>
+        <div class="card-body">
+          <p class="text-muted mb-2">For security, please use the database directly for critical operations.</p>
+          <button class="btn btn-danger" onclick="alert('For security, database operations must be performed directly on the MySQL server.')">Reset Data (DB Only)</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+
+  async function loadSettings() {
+    try {
+      const settings = await api.admin.settings();
+      const admin = JSON.parse(localStorage.getItem('cag_admin_user') || '{}');
+
+      document.getElementById('adminProfileName').textContent = admin.full_name || 'Admin';
+      document.getElementById('adminProfileEmail').textContent = admin.email || '';
+      document.getElementById('adminProfileRole').textContent = 'Role: ' + (admin.role || 'admin');
+
+      document.getElementById('systemInfo').innerHTML = `
+        <div class="mb-1"><strong>App Name:</strong> ${settings.app_name}</div>
+        <div class="mb-1"><strong>Version:</strong> ${settings.version}</div>
+        <div class="mb-1"><strong>Timezone:</strong> ${settings.timezone}</div>
+        <div class="mb-1"><strong>Maintenance Mode:</strong> ${settings.maintenance_mode ? 'On' : 'Off'}</div>
+        <hr style="margin:12px 0">
+        <div class="mb-1"><strong>Currency:</strong> ${settings.currency}</div>
+        <div class="mb-1"><strong>Tax Rate:</strong> ${settings.tax_rate}%</div>
+        <div class="mb-1"><strong>Booking Prefix:</strong> ${settings.booking_prefix}</div>
+        <div class="mb-1"><strong>Max Seats/Booking:</strong> ${settings.max_seats_per_booking}</div>
+        <div class="mb-1"><strong>Payment Gateway:</strong> ${settings.payment_gateway}</div>
+        <hr style="margin:12px 0">
+        <div class="mb-1"><strong>Cancellation Policy:</strong></div>
+        <p class="text-muted" style="font-size:0.85rem">${settings.cancellation_policy}</p>
+      `;
+    } catch (err) {
+      document.getElementById('systemInfo').innerHTML = `<p class="text-danger">${err.message}</p>`;
+    }
+  }
+
+  loadSettings();
+  </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 My Bookings</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <button class="nav-toggle" onclick="document.getElementById('navMenu').classList.toggle('show')"><span></span><span></span><span></span></button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/customer/my-bookings.html" class="nav-link active">🎫 My Bookings</a></li>
+        <li><span class="nav-link" id="navUserName" style="cursor:default;background:var(--primary-bg);border-radius:50px;padding:4px 16px;font-weight:600"></span></li>
+        <li><a href="/customer/profile.html" class="nav-link">👤 Profile</a></li>
+        <li><a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <h2 class="mb-3">🎫 My Bookings</h2>
+      <div id="alertContainer"></div>
+      <div id="bookingsContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_token')) { window.location.href = '/customer/login.html'; }
+  const user = JSON.parse(localStorage.getItem('cag_user') || '{}');
+  document.getElementById('navUserName').textContent = user.full_name || 'User';
+  document.getElementById('navLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  async function loadBookings() {
+    const container = document.getElementById('bookingsContainer');
+    try {
+      const bookings = await api.bookings.myBookings();
+      if (bookings.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🎫</div>
+            <h3>No trips yet</h3>
+            <p class="text-muted">Start exploring Zimbabwe with CAG Bus!</p>
+            <a href="/" class="btn btn-primary mt-2">🔍 Search Buses</a>
+          </div>`;
+        return;
+      }
+      container.innerHTML = bookings.map(b => {
+        const isUpcoming = new Date(b.travel_date) >= new Date() && (b.status === 'confirmed' || b.status === 'pending');
+        return `
+        <div class="card mb-2" style="border-left:4px solid ${b.status === 'confirmed' ? 'var(--success)' : b.status === 'cancelled' ? 'var(--danger)' : b.status === 'pending' ? 'var(--zm-gold-dark)' : 'var(--info)'}">
+          <div class="card-body">
+            <div class="flex-between" style="flex-wrap:wrap;gap:12px">
+              <div>
+                <h4 style="color:var(--primary)">🇿🇼 ${b.origin} → ${b.destination}</h4>
+                <p class="text-muted" style="font-size:0.85rem">📅 ${formatDate(b.travel_date)} • ${formatTime(b.departure_time)}</p>
+                <p style="font-size:0.82rem">🚌 ${b.bus_number} • ${b.bus_type}</p>
+              </div>
+              <div class="text-center">
+                <p style="font-size:0.72rem;color:var(--text-lighter)">Reference</p>
+                <p style="font-weight:700;letter-spacing:1px;font-size:0.88rem;font-family:monospace">${b.booking_reference}</p>
+              </div>
+              <div class="text-center">
+                <p style="font-size:0.72rem;color:var(--text-lighter)">Status</p>
+                ${getStatusBadge(b.status)}
+                ${isUpcoming ? '<br><span class="live-indicator" style="font-size:0.7rem;margin-top:4px"><span class="live-dot"></span> Upcoming</span>' : ''}
+              </div>
+              <div class="text-right">
+                <p style="font-weight:800;font-size:1.2rem;color:var(--primary)">${formatCurrency(b.final_amount)}</p>
+                <p style="font-size:0.82rem;color:var(--text-light)">${b.passenger_count} passenger${b.passenger_count > 1 ? 's' : ''}</p>
+              </div>
+              <div style="display:flex;gap:8px">
+                <a href="/customer/confirmation.html?booking=${b.booking_reference}" class="btn btn-secondary btn-sm">View Ticket</a>
+                ${(b.status === 'pending' || b.status === 'confirmed') && isUpcoming ? `
+                <button class="btn btn-danger btn-sm cancelBtn" data-id="${b.id}" data-ref="${b.booking_reference}">Cancel</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.querySelectorAll('.cancelBtn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          if (!confirm('🇿🇼 Cancel this booking? This action cannot be undone.')) return;
+          this.disabled = true;
+          try {
+            await api.bookings.cancel(this.dataset.id);
+            showToast('✅ Booking cancelled successfully', 'success');
+            loadBookings();
+          } catch (err) {
+            showToast(err.message, 'error');
+            this.disabled = false;
+          }
+        });
+      });
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`;
+    }
+  }
+
+  loadBookings();
+  </script>
+</body>
+</html>

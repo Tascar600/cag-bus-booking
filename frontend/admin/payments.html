@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Reports - CAG Admin Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a><a href="/admin/buses.html">🚌 Buses</a><a href="/admin/routes.html">🛣 Routes & Schedules</a><a href="/admin/bookings.html">🎫 Bookings</a><a href="/admin/payments.html" class="active">💰 Payments</a><a href="/admin/customers.html">👥 Customers</a><a href="/admin/settings.html">⚙ Settings</a><a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main fade-in">
+      <div class="admin-header"><h1>💰 Payment Reports</h1><button class="btn btn-gold" id="exportBtn">📥 Export CSV</button></div>
+      <div id="alertContainer"></div>
+      <div class="card mb-3"><div class="card-body"><div class="flex flex-gap" style="flex-wrap:wrap">
+        <div><label class="form-label">From</label><input type="date" class="form-input" id="filterFrom" style="padding:8px 12px"></div>
+        <div><label class="form-label">To</label><input type="date" class="form-input" id="filterTo" style="padding:8px 12px"></div>
+        <div><label class="form-label">Status</label><select class="form-select" id="filterStatus" style="padding:8px 32px 8px 12px"><option value="">All</option><option value="success">Success</option><option value="failed">Failed</option><option value="pending">Pending</option><option value="refunded">Refunded</option></select></div>
+        <div style="display:flex;align-items:end"><button class="btn btn-primary" id="filterBtn">🔍 Filter</button></div>
+      </div></div></div>
+      <div class="grid-4 mb-3">
+        <div class="card" style="text-align:center;padding:16px"><p class="text-muted" style="font-size:0.8rem">Total</p><h3 id="totalCount">0</h3></div>
+        <div class="card" style="text-align:center;padding:16px"><p class="text-muted" style="font-size:0.8rem">✅ Successful</p><h3 id="successCount" style="color:var(--success)">0</h3></div>
+        <div class="card" style="text-align:center;padding:16px"><p class="text-muted" style="font-size:0.8rem">💰 Revenue</p><h3 id="totalRevenue" style="color:var(--primary)">$0</h3></div>
+        <div class="card" style="text-align:center;padding:16px"><p class="text-muted" style="font-size:0.8rem">❌ Failed</p><h3 id="failedCount" style="color:var(--danger)">0</h3></div>
+      </div>
+      <div id="paymentsContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+  let allPayments = [];
+
+  async function loadPayments() {
+    const container = document.getElementById('paymentsContainer');
+    showLoading(container);
+    try {
+      const params = {};
+      const from = document.getElementById('filterFrom').value; const to = document.getElementById('filterTo').value; const status = document.getElementById('filterStatus').value;
+      if (from) params.from = from; if (to) params.to = to; if (status) params.payment_status = status;
+      allPayments = await api.payments.reports(params);
+      renderPayments(allPayments);
+    } catch (err) { container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`; }
+  }
+
+  function renderPayments(payments) {
+    const container = document.getElementById('paymentsContainer');
+    const successful = payments.filter(p => p.payment_status === 'success');
+    const failed = payments.filter(p => p.payment_status === 'failed');
+    const totalRevenue = successful.reduce((s, p) => s + parseFloat(p.amount), 0);
+    document.getElementById('totalCount').textContent = payments.length;
+    document.getElementById('successCount').textContent = successful.length;
+    document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('failedCount').textContent = failed.length;
+
+    container.innerHTML = `<div class="table-container"><table><thead><tr><th>Transaction</th><th>Booking</th><th>Customer</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th></tr></thead><tbody>
+      ${payments.map(p => `<tr><td style="font-family:monospace;font-size:0.78rem">${p.transaction_id}</td><td><strong>${p.booking_reference}</strong></td><td>${p.user_name}</td><td><strong>${formatCurrency(p.amount)}</strong></td><td><span class="badge badge-gray" style="text-transform:capitalize">${p.payment_method.replace('_',' ')}</span></td><td style="font-size:0.82rem">${new Date(p.payment_date).toLocaleString()}</td><td>${getStatusBadge(p.payment_status)}</td></tr>`).join('')}
+    </tbody></table>${payments.length === 0 ? '<p class="text-center text-muted" style="padding:20px">No payments found</p>' : ''}</div>`;
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    if (allPayments.length === 0) { showToast('No data to export', 'warning'); return; }
+    const headers = ['Transaction ID','Booking Ref','Customer','Amount','Method','Date','Status'];
+    const rows = allPayments.map(p => [p.transaction_id, p.booking_reference, p.user_name, p.amount, p.payment_method, new Date(p.payment_date).toISOString(), p.payment_status]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `cag_payments_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    showToast('📥 CSV exported successfully', 'success');
+  });
+
+  document.getElementById('filterBtn').addEventListener('click', loadPayments);
+  loadPayments();
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Management - CAG Admin Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a><a href="/admin/buses.html">🚌 Buses</a><a href="/admin/routes.html">🛣 Routes & Schedules</a><a href="/admin/bookings.html" class="active">🎫 Bookings</a><a href="/admin/payments.html">💰 Payments</a><a href="/admin/customers.html">👥 Customers</a><a href="/admin/settings.html">⚙ Settings</a><a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main fade-in">
+      <div class="admin-header"><h1>🎫 Booking Management</h1></div>
+      <div id="alertContainer"></div>
+      <div class="card mb-3"><div class="card-body"><div class="flex flex-gap" style="flex-wrap:wrap">
+        <div><label class="form-label">Status</label><select class="form-select" id="filterStatus" style="padding:8px 32px 8px 12px"><option value="">All</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="refunded">Refunded</option></select></div>
+        <div><label class="form-label">From</label><input type="date" class="form-input" id="filterFrom" style="padding:8px 12px"></div>
+        <div><label class="form-label">To</label><input type="date" class="form-input" id="filterTo" style="padding:8px 12px"></div>
+        <div style="display:flex;align-items:end"><button class="btn btn-primary" id="filterBtn">🔍 Filter</button></div>
+      </div></div></div>
+      <div id="bookingsContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+
+  async function loadBookings() {
+    const container = document.getElementById('bookingsContainer');
+    showLoading(container);
+    try {
+      const params = {};
+      const status = document.getElementById('filterStatus').value; const from = document.getElementById('filterFrom').value; const to = document.getElementById('filterTo').value;
+      if (status) params.status = status; if (from) params.from = from; if (to) params.to = to;
+      const bookings = await api.bookings.adminAll(params);
+      container.innerHTML = `<div class="table-container"><table><thead><tr><th>Reference</th><th>Customer</th><th>Route</th><th>Date</th><th>Amount</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${bookings.map(b => `<tr>
+          <td><strong style="font-family:monospace">${b.booking_reference}</strong></td>
+          <td>${b.user_name}<br><span class="text-muted" style="font-size:0.72rem">${b.user_email}</span></td>
+          <td>🇿🇼 ${b.origin} → ${b.destination}<br><span class="text-muted" style="font-size:0.72rem">${b.bus_number}</span></td>
+          <td>${formatDate(b.travel_date)}<br><span class="text-muted" style="font-size:0.72rem">${formatTime(b.departure_time)}</span></td>
+          <td><strong>${formatCurrency(b.final_amount)}</strong></td>
+          <td>${b.payment_status ? getStatusBadge(b.payment_status) : '-'}</td>
+          <td>${getStatusBadge(b.status)}</td>
+          <td>
+            ${b.status === 'pending' ? `<button class="btn btn-success btn-sm updateStatus" data-id="${b.id}" data-status="confirmed">✅ Approve</button> ` : ''}
+            ${(b.status === 'pending' || b.status === 'confirmed') ? `<button class="btn btn-danger btn-sm updateStatus" data-id="${b.id}" data-status="cancelled">❌ Cancel</button> ` : ''}
+            ${b.status === 'confirmed' ? `<button class="btn btn-blue btn-sm updateStatus" data-id="${b.id}" data-status="completed">✅ Complete</button>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody></table>${bookings.length === 0 ? '<p class="text-center text-muted" style="padding:20px">No bookings found</p>' : ''}</div>`;
+      document.querySelectorAll('.updateStatus').forEach(btn => btn.addEventListener('click', async function() {
+        if (!confirm(`Change status to "${this.dataset.status}"?`)) return;
+        try { await api.bookings.updateStatus(this.dataset.id, this.dataset.status); showToast('✅ Status updated to ' + this.dataset.status, 'success'); loadBookings(); } catch (err) { showToast(err.message, 'error'); }
+      }));
+    } catch (err) { container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`; }
+  }
+  document.getElementById('filterBtn').addEventListener('click', loadBookings);
+  loadBookings();
+  </script>
+</body>
+</html>

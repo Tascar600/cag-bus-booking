@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Seats - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 Select your seats</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <ul class="nav-menu"><li><a href="#" class="nav-link" id="backLink">← Back</a></li></ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <div id="alertContainer"></div>
+      <div id="detailContent"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const params = new URLSearchParams(window.location.search);
+  const scheduleId = params.get('schedule');
+  const date = params.get('date');
+  const origin = params.get('origin') || '';
+  const destination = params.get('destination') || '';
+  document.getElementById('backLink').href = `/customer/search-results.html?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&date=${encodeURIComponent(date)}`;
+
+  let selectedSeats = [];
+  let seatData = [];
+  let scheduleData = {};
+
+  async function loadSeats() {
+    const container = document.getElementById('detailContent');
+    try {
+      const data = await api.seats.getLayout(scheduleId, date);
+      scheduleData = data.schedule;
+      seatData = data.seats;
+      renderDetail(data);
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">🚌</div><h3>${err.message}</h3></div>`;
+    }
+  }
+
+  function renderDetail(data) {
+    const s = data.schedule;
+    const seats = data.seats;
+    const cols = data.cols || 4;
+
+    document.getElementById('detailContent').innerHTML = `
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="flex-between" style="flex-wrap:wrap;gap:16px">
+            <div>
+              <h3 style="display:flex;align-items:center;gap:8px">
+                ${s.bus_number}
+                <span class="badge ${s.bus_type === 'luxury' ? 'badge-gold' : s.bus_type === 'sleeper' ? 'badge-blue' : 'badge-gray'}" style="text-transform:capitalize">
+                  ${getBusTypeIcon(s.bus_type)} ${s.bus_type.replace('_',' ')}
+                </span>
+              </h3>
+              <p style="font-size:1.1rem;margin-top:4px">🇿🇼 <strong>${origin}</strong> → <strong>${destination}</strong></p>
+              <p class="text-muted">📅 ${formatDate(date)} • ${formatTime(s.departure_time)} - ${formatTime(s.arrival_time)}</p>
+            </div>
+            <div class="text-right">
+              <div style="font-size:2rem;font-weight:800;color:var(--primary)">${formatCurrency(s.base_price)}</div>
+              <div class="text-muted">per seat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px">
+        <div class="card">
+          <div class="card-header"><h4>🎯 Select Your Seats</h4></div>
+          <div class="card-body">
+            <div class="seat-map-container">
+              <div class="seat-map" id="seatMap"></div>
+              <div class="seat-legend">
+                <div class="legend-item"><div class="box available"></div> Available</div>
+                <div class="legend-item"><div class="box selected"></div> Your Pick</div>
+                <div class="legend-item"><div class="box booked"></div> Taken</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card mb-3">
+            <div class="card-header"><h4>📋 Booking Summary</h4></div>
+            <div class="card-body">
+              <div id="selectedSeatsList"><p class="text-muted">Click a seat to select</p></div>
+              <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
+              <div class="flex-between mb-1"><span>Price per seat:</span><span>${formatCurrency(s.base_price)}</span></div>
+              <div class="flex-between mb-1"><span>Seats:</span><span id="seatCount">0</span></div>
+              <div class="flex-between mb-1"><span>Tax (5%):</span><span id="taxAmount">${formatCurrency(0)}</span></div>
+              <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
+              <div class="flex-between" style="font-size:1.3rem;font-weight:800">
+                <span>Total:</span>
+                <span id="totalAmount" style="color:var(--primary)">${formatCurrency(0)}</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg" id="continueBtn" disabled>
+            Continue to Booking →
+          </button>
+        </div>
+      </div>
+    `;
+
+    renderSeatMap(seats, data.rows, cols);
+    bindSeatEvents();
+  }
+
+  function renderSeatMap(seats, rows, cols) {
+    const map = document.getElementById('seatMap');
+    let html = '<div class="seat-row"><div style="width:24px"></div><div class="seat-steering" style="width:44px;background:var(--primary-bg);border-radius:var(--radius-sm)">🚌</div></div>';
+    const midPoint = Math.floor(cols / 2);
+
+    for (let r = 1; r <= rows; r++) {
+      const rowSeats = seats.filter(s => s.seat_row === r);
+      if (rowSeats.length === 0) continue;
+      html += '<div class="seat-row">';
+      html += `<span class="seat-row-label">${r}</span>`;
+      rowSeats.forEach((seat, i) => {
+        const status = seat.is_booked ? 'booked' : 'available';
+        const selected = selectedSeats.includes(seat.id) ? 'selected' : '';
+        const premium = seat.price > scheduleData.base_price ? 'premium' : '';
+        html += `<div class="seat ${status} ${selected} ${premium}" data-id="${seat.id}" data-number="${seat.seat_number}" data-price="${seat.price}">${seat.seat_number.replace(/\d+/,'')}</div>`;
+        if (i === midPoint - 1) html += '<div style="width:16px"></div>';
+      });
+      html += '</div>';
+    }
+    map.innerHTML = html;
+  }
+
+  function bindSeatEvents() {
+    document.querySelectorAll('.seat.available').forEach(seat => {
+      seat.addEventListener('click', function() {
+        const id = parseInt(this.dataset.id);
+        const idx = selectedSeats.indexOf(id);
+        if (idx > -1) {
+          selectedSeats.splice(idx, 1);
+          this.classList.remove('selected');
+        } else {
+          if (selectedSeats.length >= 10) { showToast('Maximum 10 seats per booking', 'warning'); return; }
+          selectedSeats.push(id);
+          this.classList.add('selected');
+        }
+        updateSummary();
+      });
+    });
+  }
+
+  function updateSummary() {
+    const count = selectedSeats.length;
+    const price = parseFloat(scheduleData.base_price) || 0;
+    const subtotal = price * count;
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+
+    document.getElementById('seatCount').textContent = count;
+    document.getElementById('taxAmount').textContent = formatCurrency(tax);
+    document.getElementById('totalAmount').textContent = formatCurrency(total);
+    document.getElementById('continueBtn').disabled = count === 0;
+
+    if (count > 0) {
+      const seatNums = selectedSeats.map(id => { const s = seatData.find(se => se.id === id); return s ? s.seat_number : ''; }).join(', ');
+      document.getElementById('selectedSeatsList').innerHTML = `<p><strong>${count} selected:</strong> ${seatNums}</p>`;
+    } else {
+      document.getElementById('selectedSeatsList').innerHTML = '<p class="text-muted">Click a seat to select</p>';
+    }
+  }
+
+  document.getElementById('detailContent').addEventListener('click', function(e) {
+    if (e.target.id === 'continueBtn') {
+      if (selectedSeats.length === 0) return;
+      const token = localStorage.getItem('cag_token');
+      if (!token) {
+        showToast('Please login to continue', 'warning');
+        window.location.href = `/customer/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        return;
+      }
+      window.location.href = `/customer/checkout.html?schedule=${scheduleId}&date=${date}&seats=${selectedSeats.join(',')}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+    }
+  });
+
+  loadSeats();
+  </script>
+</body>
+</html>

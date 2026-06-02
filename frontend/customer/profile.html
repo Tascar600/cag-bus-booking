@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 My Profile</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <ul class="nav-menu">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/customer/my-bookings.html" class="nav-link">🎫 My Bookings</a></li>
+        <li><a href="/customer/profile.html" class="nav-link active">👤 Profile</a></li>
+        <li><a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <h2 class="mb-3">👤 My Profile</h2>
+      <div id="alertContainer"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div class="card">
+          <div class="card-header"><h4>Personal Information</h4></div>
+          <div class="card-body">
+            <form id="profileForm">
+              <div class="form-group">
+                <label class="form-label">👤 Full Name</label>
+                <input type="text" class="form-input" id="fullName" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">📧 Email</label>
+                <input type="email" class="form-input" id="email" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">📞 Phone</label>
+                <input type="tel" class="form-input" id="phone" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">📍 Address</label>
+                <textarea class="form-textarea" id="address" rows="2" placeholder="Your city in Zimbabwe"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">🎂 Date of Birth</label>
+                <input type="date" class="form-input" id="dob">
+              </div>
+              <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+            </form>
+          </div>
+        </div>
+
+        <div>
+          <div class="card mb-3">
+            <div class="card-header"><h4>🔒 Change Password</h4></div>
+            <div class="card-body">
+              <form id="passwordForm">
+                <div class="form-group">
+                  <label class="form-label">Current Password</label>
+                  <input type="password" class="form-input" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Password</label>
+                  <input type="password" class="form-input" id="newPassword" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary">🔄 Change Password</button>
+              </form>
+            </div>
+          </div>
+          <div class="card" style="background:var(--primary-bg);border:none">
+            <div class="card-body" style="text-align:center;padding:20px">
+              <p style="font-size:0.9rem">🇿🇼 <strong>CAG Bus Zimbabwe</strong></p>
+              <p class="text-muted" style="font-size:0.82rem">Need help? Contact our Zimbabwe support team</p>
+              <p style="font-weight:600">📞 +263 78 000 1234</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_token')) window.location.href = '/customer/login.html';
+  document.getElementById('navLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  async function loadProfile() {
+    try {
+      const user = await api.auth.me();
+      document.getElementById('fullName').value = user.full_name || '';
+      document.getElementById('email').value = user.email || '';
+      document.getElementById('phone').value = user.phone || '';
+      document.getElementById('address').value = user.address || '';
+      document.getElementById('dob').value = user.date_of_birth || '';
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      await api.auth.updateProfile({
+        full_name: document.getElementById('fullName').value,
+        phone: document.getElementById('phone').value,
+        address: document.getElementById('address').value,
+        date_of_birth: document.getElementById('dob').value
+      });
+      showToast('✅ Profile updated successfully', 'success');
+    } catch (err) { showToast(err.message, 'error'); }
+    finally { btn.disabled = false; }
+  });
+
+  document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      await api.auth.changePassword(
+        document.getElementById('currentPassword').value,
+        document.getElementById('newPassword').value
+      );
+      showToast('✅ Password changed successfully', 'success');
+      e.target.reset();
+    } catch (err) { showToast(err.message, 'error'); }
+    finally { btn.disabled = false; }
+  });
+
+  loadProfile();
+  </script>
+</body>
+</html>

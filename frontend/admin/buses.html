@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bus Management - CAG Admin Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a>
+        <a href="/admin/buses.html" class="active">🚌 Buses</a>
+        <a href="/admin/routes.html">🛣 Routes & Schedules</a>
+        <a href="/admin/bookings.html">🎫 Bookings</a>
+        <a href="/admin/payments.html">💰 Payments</a>
+        <a href="/admin/customers.html">👥 Customers</a>
+        <a href="/admin/settings.html">⚙ Settings</a>
+        <a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main fade-in">
+      <div class="admin-header"><h1>🚌 Bus Fleet Management</h1><button class="btn btn-primary" id="addBusBtn">+ Add Bus</button></div>
+      <div id="alertContainer"></div>
+      <div id="busesContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="busModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header"><h3 id="modalTitle">🚌 Add Bus</h3><button class="modal-close" id="modalClose">&times;</button></div>
+      <div class="modal-body">
+        <form id="busForm">
+          <input type="hidden" id="editBusId">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Bus Number <span style="color:var(--danger)">*</span></label><input type="text" class="form-input" id="busNumber" placeholder="e.g. CAG-016" required></div>
+            <div class="form-group"><label class="form-label">Plate Number <span style="color:var(--danger)">*</span></label><input type="text" class="form-input" id="plateNumber" placeholder="e.g. ABC 1234" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Bus Type <span style="color:var(--danger)">*</span></label>
+              <select class="form-select" id="busType" required>
+                <option value="standard">🚌 Standard</option>
+                <option value="ac">❄️ AC</option>
+                <option value="luxury">⭐ Luxury</option>
+                <option value="sleeper">🛏️ Sleeper</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Seat Layout</label>
+              <select class="form-select" id="seatLayout">
+                <option value="2x2">2x2 (Standard)</option>
+                <option value="2x1">2x1 (Sleeper/Luxury)</option>
+                <option value="2x3">2x3 (Max capacity)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Capacity <span style="color:var(--danger)">*</span></label><input type="number" class="form-input" id="capacity" min="10" max="60" value="44" required></div>
+            <div class="form-group" id="statusGroup" style="display:none"><label class="form-label">Status</label><select class="form-select" id="busStatus"><option value="1">🟢 Active</option><option value="0">🔴 Inactive</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Amenities</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="amenitiesCheckboxes">
+              <label class="form-check"><input type="checkbox" value="AC"> ❄️ AC</label>
+              <label class="form-check"><input type="checkbox" value="WiFi"> 📶 WiFi</label>
+              <label class="form-check"><input type="checkbox" value="USB Charging"> 🔌 USB Charging</label>
+              <label class="form-check"><input type="checkbox" value="Reading Light"> 💡 Reading Light</label>
+              <label class="form-check"><input type="checkbox" value="Entertainment"> 📺 Entertainment</label>
+              <label class="form-check"><input type="checkbox" value="Hot Meals"> 🍽️ Hot Meals</label>
+              <label class="form-check"><input type="checkbox" value="Snacks"> 🍿 Snacks</label>
+              <label class="form-check"><input type="checkbox" value="Water"> 💧 Water</label>
+              <label class="form-check"><input type="checkbox" value="Coffee"> ☕ Coffee</label>
+              <label class="form-check"><input type="checkbox" value="Legroom"> 🦵 Extra Legroom</label>
+              <label class="form-check"><input type="checkbox" value="Blanket"> 🧣 Blanket</label>
+              <label class="form-check"><input type="checkbox" value="Sleeper Berth"> 🛏️ Sleeper Berth</label>
+              <label class="form-check"><input type="checkbox" value="Curtains"> 🪟 Curtains</label>
+              <label class="form-check"><input type="checkbox" value="Charging"> 🔋 Charging Port</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <button type="submit" class="btn btn-primary">💾 Save Bus</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+
+  const modal = document.getElementById('busModal');
+  document.getElementById('addBusBtn').addEventListener('click', () => {
+    document.getElementById('editBusId').value = '';
+    document.getElementById('modalTitle').textContent = '🚌 Add New Bus';
+    document.getElementById('busForm').reset();
+    document.getElementById('statusGroup').style.display = 'none';
+    document.getElementById('capacity').value = 44;
+    document.getElementById('seatLayout').value = '2x2';
+    modal.classList.add('show');
+  });
+  document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('show'));
+  document.getElementById('cancelBtn').addEventListener('click', () => modal.classList.remove('show'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+
+  function getAmenities() { return Array.from(document.querySelectorAll('#amenitiesCheckboxes input:checked')).map(c => c.value); }
+  function setAmenities(arr) { document.querySelectorAll('#amenitiesCheckboxes input').forEach(c => { c.checked = arr.includes(c.value); }); }
+  function getBusTypeIcon(type) {
+    const icons = { standard: '🚌', ac: '❄️', luxury: '⭐', sleeper: '🛏️' };
+    return icons[type] || '🚌';
+  }
+
+  async function loadBuses() {
+    const container = document.getElementById('busesContainer');
+    showLoading(container);
+    try {
+      const buses = await api.buses.list();
+      container.innerHTML = `<div class="table-container"><table><thead><tr>
+        <th>Bus #</th><th>Plate</th><th>Type</th><th>Layout</th><th>Capacity</th><th>Seats</th><th>Amenities</th><th>Status</th><th>Actions</th>
+      </tr></thead><tbody>
+        ${buses.map(b => {
+          const amenities = b.amenities?.length ? (typeof b.amenities === 'string' ? JSON.parse(b.amenities) : b.amenities) : [];
+          return `<tr>
+            <td><strong style="font-family:monospace;font-size:0.85rem">${b.bus_number}</strong></td>
+            <td style="font-family:monospace;font-size:0.82rem">${b.plate_number}</td>
+            <td><span class="badge badge-gray">${getBusTypeIcon(b.bus_type)} ${b.bus_type.charAt(0).toUpperCase() + b.bus_type.slice(1)}</span></td>
+            <td style="font-size:0.82rem">${b.seat_layout || '2x2'}</td>
+            <td style="font-weight:600">${b.capacity}</td>
+            <td style="font-size:0.82rem">${b.capacity} seats</td>
+            <td style="font-size:0.78rem">${amenities.slice(0, 4).join(', ')}${amenities.length > 4 ? ` <span class="text-muted">+${amenities.length - 4} more</span>` : '-'}</td>
+            <td>${b.is_active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>'}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm editBus" data-id="${b.id}" title="Edit bus">✏️ Edit</button>
+              ${b.is_active ? `<button class="btn btn-danger btn-sm deleteBus" data-id="${b.id}" title="Deactivate bus">🚫</button>` : `<button class="btn btn-success btn-sm activateBus" data-id="${b.id}" title="Activate bus">✅</button>`}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`;
+
+      document.querySelectorAll('.editBus').forEach(btn => btn.addEventListener('click', async function() {
+        const bus = await api.buses.get(this.dataset.id);
+        document.getElementById('editBusId').value = bus.id;
+        document.getElementById('modalTitle').textContent = '✏️ Edit Bus - ' + bus.bus_number;
+        document.getElementById('busNumber').value = bus.bus_number;
+        document.getElementById('plateNumber').value = bus.plate_number;
+        document.getElementById('busType').value = bus.bus_type;
+        document.getElementById('capacity').value = bus.capacity;
+        document.getElementById('seatLayout').value = bus.seat_layout || '2x2';
+        document.getElementById('busStatus').value = bus.is_active ? '1' : '0';
+        document.getElementById('statusGroup').style.display = 'block';
+        setAmenities(amenities);
+        modal.classList.add('show');
+      }));
+
+      document.querySelectorAll('.deleteBus').forEach(btn => btn.addEventListener('click', async function() {
+        if (confirm('Deactivate this bus? It will no longer be available for scheduling.')) {
+          await api.buses.delete(this.dataset.id);
+          loadBuses();
+          showToast('Bus deactivated', 'info');
+        }
+      }));
+
+      document.querySelectorAll('.activateBus').forEach(btn => btn.addEventListener('click', async function() {
+        try {
+          await api.buses.update(this.dataset.id, { is_active: 1 });
+          loadBuses();
+          showToast('Bus reactivated', 'success');
+        } catch (err) { showToast(err.message, 'error'); }
+      }));
+    } catch (err) { container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`; }
+  }
+
+  document.getElementById('busForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editBusId').value;
+    const data = {
+      bus_number: document.getElementById('busNumber').value.trim(),
+      plate_number: document.getElementById('plateNumber').value.trim(),
+      bus_type: document.getElementById('busType').value,
+      capacity: parseInt(document.getElementById('capacity').value),
+      seat_layout: document.getElementById('seatLayout').value,
+      amenities: getAmenities()
+    };
+    if (id) data.is_active = parseInt(document.getElementById('busStatus').value);
+    try {
+      if (id) { await api.buses.update(id, data); } else { await api.buses.create(data); }
+      modal.classList.remove('show');
+      showToast(id ? 'Bus updated successfully' : 'Bus added successfully', 'success');
+      loadBuses();
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+
+  loadBuses();
+  </script>
+</body>
+</html>

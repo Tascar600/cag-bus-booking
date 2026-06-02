@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers - CAG Admin Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a><a href="/admin/buses.html">🚌 Buses</a><a href="/admin/routes.html">🛣 Routes & Schedules</a><a href="/admin/bookings.html">🎫 Bookings</a><a href="/admin/payments.html">💰 Payments</a><a href="/admin/customers.html" class="active">👥 Customers</a><a href="/admin/settings.html">⚙ Settings</a><a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main fade-in">
+      <div class="admin-header"><h1>👥 Customer Management</h1></div>
+      <div id="alertContainer"></div>
+      <div class="card mb-3"><div class="card-body"><div class="flex" style="gap:8px">
+        <input type="text" class="form-input" id="searchInput" placeholder="🔍 Search by name, email or phone..." style="flex:1;padding:10px 16px">
+        <button class="btn btn-primary" id="searchBtn">Search</button>
+      </div></div></div>
+      <div id="customersContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+
+  async function loadCustomers(search = '') {
+    const container = document.getElementById('customersContainer');
+    showLoading(container);
+    try {
+      const params = {};
+      if (search) params.search = search;
+      const customers = await api.get('/users', params);
+      container.innerHTML = `<div class="table-container"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Bookings</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${customers.map(c => `<tr>
+          <td><div class="flex" style="align-items:center;gap:8px"><div class="admin-avatar">${c.name?.charAt(0)?.toUpperCase() || '?'}</div><div><strong>${c.name}</strong></div></div></td>
+          <td>${c.email}</td>
+          <td>${c.phone || '-'}</td>
+          <td style="font-size:0.82rem">${c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</td>
+          <td><span class="badge badge-blue">${c.booking_count || 0}</span></td>
+          <td>${c.is_active !== false ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Disabled</span>'}</td>
+          <td>${c.is_active !== false ? `<button class="btn btn-danger btn-sm disableUser" data-id="${c.id}" data-name="${c.name}">Disable</button>` : `<button class="btn btn-success btn-sm enableUser" data-id="${c.id}" data-name="${c.name}">Enable</button>`}</td>
+        </tr>`).join('')}
+      </tbody></table>${customers.length === 0 ? '<p class="text-center text-muted" style="padding:20px">No customers found</p>' : ''}</div>`;
+      document.querySelectorAll('.disableUser').forEach(btn => btn.addEventListener('click', async function() {
+        if (!confirm(`Disable user ${this.dataset.name}?`)) return;
+        try { await api.get('/users/' + this.dataset.id + '/disable'); showToast('✅ User disabled', 'success'); loadCustomers(search); } catch (err) { showToast(err.message, 'error'); }
+      }));
+      document.querySelectorAll('.enableUser').forEach(btn => btn.addEventListener('click', async function() {
+        try { await api.get('/users/' + this.dataset.id + '/enable'); showToast('✅ User enabled', 'success'); loadCustomers(search); } catch (err) { showToast(err.message, 'error'); }
+      }));
+    } catch (err) { container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`; }
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', () => loadCustomers(document.getElementById('searchInput').value));
+  document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') loadCustomers(e.target.value); });
+  loadCustomers();
+  </script>
+</body>
+</html>

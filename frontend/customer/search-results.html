@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Results - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Top bar -->
+  <div class="liveline">
+    <div class="container">
+      <div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 CAG Bus Zimbabwe</span></div>
+      <div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div>
+    </div>
+  </div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <button class="nav-toggle" onclick="document.getElementById('navMenu').classList.toggle('show')"><span></span><span></span><span></span></button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/customer/my-bookings.html" class="nav-link" id="navBookings" style="display:none">🎫 My Bookings</a></li>
+        <li id="navUserMenu" style="display:none">
+          <span class="nav-link" id="navUserName" style="cursor:default;background:var(--primary-bg);border-radius:50px;padding:4px 16px;font-weight:600"></span>
+          <a href="/customer/profile.html" class="nav-link">👤 Profile</a>
+          <a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <div class="flex-between mb-3" style="padding-top:16px">
+        <div>
+          <h2 id="resultsTitle">🚌 Search Results</h2>
+          <p class="text-muted" id="resultsMeta"></p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="history.back()">← Modify Search</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="flex flex-gap" style="flex-wrap:wrap">
+            <div><label class="form-label">🚌 Bus Type</label><select class="form-select" id="filterType" style="padding:8px 32px 8px 12px;font-size:0.85rem"><option value="">All Types</option><option value="ac">AC</option><option value="standard">Standard</option><option value="luxury">⭐ Luxury</option><option value="sleeper">🛏️ Sleeper</option></select></div>
+            <div><label class="form-label">💰 Max Price</label><input type="number" class="form-input" id="filterMaxPrice" placeholder="Any" style="padding:8px 12px;font-size:0.85rem;max-width:120px"></div>
+            <div><label class="form-label">🕐 Departure</label><select class="form-select" id="filterTime" style="padding:8px 32px 8px 12px;font-size:0.85rem"><option value="">Any Time</option><option value="morning">🌅 Morning (6AM-12PM)</option><option value="afternoon">☀️ Afternoon (12PM-6PM)</option><option value="evening">🌙 Evening (6PM-12AM)</option></select></div>
+            <div style="display:flex;align-items:end"><button class="btn btn-primary" id="applyFilters">Apply Filters</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="resultsContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const params = new URLSearchParams(window.location.search);
+  const origin = params.get('origin') || '';
+  const dest = params.get('destination') || '';
+  const date = params.get('date') || new Date().toISOString().split('T')[0];
+
+  document.getElementById('resultsTitle').innerHTML = `🚌 <strong>${origin}</strong> → <strong>${dest}</strong>`;
+  document.getElementById('resultsMeta').textContent = `📅 ${formatDate(date)}`;
+
+  // Auth
+  const token = localStorage.getItem('cag_token');
+  if (token) {
+    const user = JSON.parse(localStorage.getItem('cag_user') || '{}');
+    document.getElementById('navUserMenu').style.display = 'flex';
+    document.getElementById('navBookings').style.display = 'block';
+    document.getElementById('navUserName').textContent = user.full_name || 'User';
+    document.getElementById('navLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+  }
+
+  let schedules = [];
+
+  async function loadResults() {
+    const container = document.getElementById('resultsContainer');
+    showLoading(container);
+    try {
+      schedules = await api.schedules.search(origin, dest, date);
+      renderResults(schedules);
+      if (schedules.length > 0) showToast(`🎫 Found ${schedules.length} bus${schedules.length > 1 ? 'es' : ''} for this route`, 'info', 3000);
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">🚌</div><h3>No buses found</h3><p class="text-muted">Try a different route or date</p><a href="/" class="btn btn-primary mt-2">← Back to Search</a></div>`;
+    }
+  }
+
+  function renderResults(data) {
+    const container = document.getElementById('resultsContainer');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🚌</div><h3>No buses available</h3><p class="text-muted">Try different cities or another date</p><a href="/" class="btn btn-primary mt-2">← Back to Search</a></div>';
+      return;
+    }
+    container.innerHTML = data.map(s => `
+      <div class="card mb-2 schedule-card" data-type="${s.bus_type}" data-price="${s.base_price}" data-time="${s.departure_time}" style="border-left:4px solid ${s.bus_type === 'luxury' ? 'var(--zm-gold)' : s.bus_type === 'sleeper' ? 'var(--primary)' : 'var(--border)'}">
+        <div class="card-body">
+          <div class="flex-between" style="flex-wrap:wrap;gap:16px">
+            <div style="min-width:120px">
+              <h4 style="color:var(--primary);font-size:1.1rem">${s.bus_number}</h4>
+              <span class="badge ${s.bus_type === 'luxury' ? 'badge-gold' : s.bus_type === 'sleeper' ? 'badge-blue' : 'badge-gray'}" style="text-transform:capitalize;font-size:0.7rem">
+                ${getBusTypeIcon(s.bus_type)} ${s.bus_type.replace('_',' ')}
+              </span>
+            </div>
+            <div class="text-center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--text)">${formatTime(s.departure_time)}</div>
+              <div class="text-muted" style="font-size:0.78rem">Departure</div>
+            </div>
+            <div class="text-center">
+              <div style="font-size:0.75rem;color:var(--text-lighter)">${s.duration_minutes ? Math.floor(s.duration_minutes/60)+'h '+s.duration_minutes%60+'m' : '-'}</div>
+              <div style="border-top:2px dashed var(--border);width:80px;margin:6px auto;position:relative">
+                <span style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:1rem">🚌</span>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-lighter)">${s.distance_km || ''} km</div>
+            </div>
+            <div class="text-center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--text)">${formatTime(s.arrival_time)}</div>
+              <div class="text-muted" style="font-size:0.78rem">Arrival</div>
+            </div>
+            <div class="text-right" style="min-width:100px">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--primary)">${formatCurrency(s.base_price)}</div>
+              <div class="live-indicator" style="font-size:0.78rem">
+                <span class="live-dot"></span>
+                <span>${s.available_seats || 0} seats left</span>
+              </div>
+            </div>
+            <div>
+              <button class="btn btn-primary viewSchedule" data-id="${s.id}">
+                View Seats →
+              </button>
+            </div>
+          </div>
+          ${s.amenities && s.amenities.length ? `
+          <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+            ${s.amenities.map(a => `<span class="badge badge-gray" style="font-size:0.68rem">${a}</span>`).join('')}
+          </div>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.viewSchedule').forEach(btn => {
+      btn.addEventListener('click', function() {
+        window.location.href = `/customer/bus-detail.html?schedule=${this.dataset.id}&date=${date}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}`;
+      });
+    });
+  }
+
+  // Filters
+  document.getElementById('applyFilters').addEventListener('click', () => {
+    const type = document.getElementById('filterType').value.toLowerCase();
+    const maxPrice = parseFloat(document.getElementById('filterMaxPrice').value);
+    const timeFilter = document.getElementById('filterTime').value;
+
+    let filtered = [...schedules];
+    if (type) filtered = filtered.filter(s => s.bus_type === type);
+    if (maxPrice) filtered = filtered.filter(s => s.base_price <= maxPrice);
+    if (timeFilter) {
+      filtered = filtered.filter(s => {
+        const h = parseInt(s.departure_time.split(':')[0]);
+        if (timeFilter === 'morning') return h >= 6 && h < 12;
+        if (timeFilter === 'afternoon') return h >= 12 && h < 18;
+        if (timeFilter === 'evening') return h >= 18 || h < 6;
+        return true;
+      });
+    }
+    renderResults(filtered);
+    document.getElementById('resultsMeta').textContent = `${formatDate(date)} • ${filtered.length} bus${filtered.length !== 1 ? 'es' : ''} found`;
+    showToast(`Showing ${filtered.length} of ${schedules.length} buses`, 'info', 2000);
+  });
+
+  loadResults();
+  </script>
+</body>
+</html>

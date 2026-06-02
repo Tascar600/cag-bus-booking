@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 Complete your booking</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <h2 class="mb-3">✈️ Complete Your Booking</h2>
+      <div id="alertContainer"></div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px">
+        <div>
+          <div class="card mb-3">
+            <div class="card-header"><h4>👤 Passenger Details</h4></div>
+            <div class="card-body" id="passengerForm"></div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header"><h4>📞 Contact Info</h4></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">📱 Phone Number</label>
+                  <input type="tel" class="form-input" id="contactPhone" placeholder="+263 77 000 0000" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">📧 Email</label>
+                  <input type="email" class="form-input" id="contactEmail" placeholder="your@email.co.zw" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">💬 Special Requests</label>
+                <textarea class="form-textarea" id="specialRequests" placeholder="Any special requirements? (e.g., wheelchair access, dietary needs)" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header"><h4>💳 Payment Method</h4></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Choose how to pay</label>
+                <select class="form-select" id="paymentMethod" style="font-size:1rem;padding:14px 40px 14px 16px">
+                  <option value="ecocash" selected>📱 EcoCash — 0781 059 106 (Takudzwa Isaya Masiwa)</option>
+                  <option value="onemoney">📱 OneMoney — 0781 059 106 (Takudzwa Isaya Masiwa)</option>
+                  <option value="zimswitch">💳 ZimSwitch Card Payment</option>
+                  <option value="cash_on_departure">🚌 Cash on Departure</option>
+                </select>
+              </div>
+
+              <div id="ecocashInfo" class="payment-info-card">
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                  <div style="background:var(--primary-bg);border-radius:12px;padding:16px;text-align:center;min-width:120px">
+                    <div style="font-size:2rem">📱</div>
+                    <div style="font-weight:700;font-size:1.2rem;font-family:monospace" id="ecocashNumber">0781 059 106</div>
+                  </div>
+                  <div>
+                    <p style="font-weight:600;margin-bottom:4px">Send payment to:</p>
+                    <p style="font-size:1.1rem"><strong id="ecocashName">Takudzwa Isaya Masiwa</strong></p>
+                    <p class="text-muted" style="font-size:0.85rem" id="ecocashAmount">Amount: <strong id="payAmountLabel">$0.00</strong></p>
+                    <p style="font-size:0.82rem;color:var(--zm-red);margin-top:4px">⚠️ Your booking will be confirmed immediately. Pay before travel.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div id="zimswitchCard" style="display:none">
+                <p class="text-muted mb-2" style="font-size:0.88rem">💳 Enter your ZimSwitch card details for secure payment</p>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Card Number</label><input type="text" class="form-input" id="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19"></div>
+                  <div class="form-group"><label class="form-label">Card Holder</label><input type="text" class="form-input" id="cardHolder" placeholder="John Doe"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Expiry</label><input type="text" class="form-input" id="cardExpiry" placeholder="MM/YY" maxlength="5"></div>
+                  <div class="form-group"><label class="form-label">CVV</label><input type="text" class="form-input" id="cardCvv" placeholder="123" maxlength="4"></div>
+                </div>
+                <p class="text-muted" style="font-size:0.78rem">🔒 Simulated ZimSwitch payment • Test with any card</p>
+              </div>
+
+              <div id="cashOnDepartureInfo" style="display:none" class="payment-info-card">
+                <div style="display:flex;align-items:center;gap:16px">
+                  <div style="background:var(--primary-bg);border-radius:12px;padding:16px;text-align:center;min-width:80px">
+                    <div style="font-size:2rem">🚌</div>
+                  </div>
+                  <div>
+                    <p style="font-weight:600;margin-bottom:4px">Pay Cash on Departure</p>
+                    <p style="font-size:0.9rem">Pay the exact amount in <strong>USD</strong> to the bus conductor before boarding.</p>
+                    <p style="font-size:0.85rem;color:var(--zm-red);margin-top:4px">⚠️ Please have exact change ready. Your seat is reserved upon confirmation.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block btn-lg" id="payBtn">💳 Confirm Booking</button>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header"><h4>📋 Trip Summary</h4></div>
+            <div class="card-body" id="summaryContent"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card mt-2" style="background:var(--primary-bg);border:none">
+            <div class="card-body" style="text-align:center;padding:16px">
+              <p style="font-size:0.88rem">🇿🇼 Need help? <strong>+263 78 000 1234</strong><br><span class="text-muted" style="font-size:0.78rem">Zimbabwe-based support, 24/7</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const params = new URLSearchParams(window.location.search);
+  const scheduleId = params.get('schedule');
+  const date = params.get('date');
+  const seatIds = params.get('seats') ? params.get('seats').split(',').map(Number) : [];
+  const origin = params.get('origin') || '';
+  const destination = params.get('destination') || '';
+
+  if (!scheduleId || !date || seatIds.length === 0) window.location.href = '/';
+  if (!localStorage.getItem('cag_token')) window.location.href = `/customer/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+
+  let scheduleData = {};
+  let seatDetails = [];
+  let totalAmount = 0;
+
+  async function loadSummary() {
+    try {
+      const data = await api.seats.getLayout(scheduleId, date);
+      scheduleData = data.schedule;
+      seatDetails = data.seats.filter(s => seatIds.includes(s.id));
+      const price = parseFloat(scheduleData.base_price) || 0;
+      const count = seatDetails.length;
+      const subtotal = price * count;
+      const tax = subtotal * 0.05;
+      totalAmount = subtotal + tax;
+      const seatNums = seatDetails.map(s => s.seat_number).join(', ');
+
+      document.getElementById('summaryContent').innerHTML = `
+        <div class="mb-2"><p class="text-muted" style="font-size:0.82rem">📍 Route</p><p><strong>${origin}</strong> → <strong>${destination}</strong></p></div>
+        <div class="mb-2"><p class="text-muted" style="font-size:0.82rem">📅 Date & Time</p><p><strong>${formatDate(date)}</strong> • ${formatTime(scheduleData.departure_time)} - ${formatTime(scheduleData.arrival_time)}</p></div>
+        <div class="mb-2"><p class="text-muted" style="font-size:0.82rem">🚌 Bus</p><p><strong>${scheduleData.bus_number}</strong> <span class="badge badge-gray" style="text-transform:capitalize">${scheduleData.bus_type}</span></p></div>
+        <div class="mb-2"><p class="text-muted" style="font-size:0.82rem">💺 Seats</p><p><strong>${count} seat${count > 1 ? 's' : ''}:</strong> ${seatNums}</p></div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
+        <div class="flex-between mb-1"><span>Subtotal (${count} × ${formatCurrency(price)}):</span><span>${formatCurrency(subtotal)}</span></div>
+        <div class="flex-between mb-1"><span>Tax (5%):</span><span>${formatCurrency(tax)}</span></div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
+        <div class="flex-between" style="font-size:1.3rem;font-weight:800"><span>Total:</span><span style="color:var(--primary)">${formatCurrency(totalAmount)}</span></div>
+        <p class="text-muted mt-1" style="font-size:0.78rem">≈ ZWL $${(totalAmount * 350).toLocaleString()}</p>
+      `;
+      document.getElementById('payAmountLabel').textContent = formatCurrency(totalAmount);
+      renderPassengerForm(count);
+    } catch (err) {
+      document.getElementById('summaryContent').innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`;
+    }
+  }
+
+  function renderPassengerForm(count) {
+    const container = document.getElementById('passengerForm');
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      const seat = seatDetails[i];
+      html += `
+        <div class="card mb-2" style="box-shadow:none;border:1px solid var(--border)">
+          <div class="card-header" style="padding:12px 16px">
+            <strong>👤 Passenger ${i + 1}</strong> <span class="badge badge-green">Seat ${seat ? seat.seat_number : ''}</span>
+          </div>
+          <div class="card-body" style="padding:12px 16px">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Full Name *</label><input type="text" class="form-input passenger-name" data-idx="${i}" placeholder="Full name" required></div>
+              <div class="form-group"><label class="form-label">Age</label><input type="number" class="form-input passenger-age" data-idx="${i}" placeholder="Age" min="1" max="120"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Gender</label><select class="form-select passenger-gender" data-idx="${i}"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
+              <div class="form-group"><label class="form-label">ID / Passport #</label><input type="text" class="form-input passenger-id" data-idx="${i}" placeholder="National ID or Passport"></div>
+            </div>
+          </div>
+        </div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  document.getElementById('paymentMethod').addEventListener('change', function() {
+    const val = this.value;
+    document.getElementById('ecocashInfo').style.display = val === 'ecocash' || val === 'onemoney' ? 'block' : 'none';
+    document.getElementById('zimswitchCard').style.display = val === 'zimswitch' ? 'block' : 'none';
+    document.getElementById('cashOnDepartureInfo').style.display = val === 'cash_on_departure' ? 'block' : 'none';
+    if (val === 'ecocash') {
+      document.getElementById('ecocashNumber').textContent = '0781 059 106';
+      document.getElementById('ecocashName').textContent = 'Takudzwa Isaya Masiwa (EcoCash)';
+    } else if (val === 'onemoney') {
+      document.getElementById('ecocashNumber').textContent = '0781 059 106';
+      document.getElementById('ecocashName').textContent = 'Takudzwa Isaya Masiwa (OneMoney)';
+    }
+  });
+
+  document.getElementById('payBtn').addEventListener('click', async function() {
+    const names = document.querySelectorAll('.passenger-name');
+    for (let n of names) { if (!n.value.trim()) { showToast('Please enter all passenger names', 'warning'); n.focus(); return; } }
+    const phone = document.getElementById('contactPhone').value;
+    const email = document.getElementById('contactEmail').value;
+    if (!phone || !email) { showToast('Please enter contact details', 'warning'); return; }
+
+    const paymentMethod = document.getElementById('paymentMethod').value;
+
+    if (paymentMethod === 'zimswitch') {
+      if (!document.getElementById('cardNumber').value || !document.getElementById('cardHolder').value ||
+          !document.getElementById('cardExpiry').value || !document.getElementById('cardCvv').value) {
+        showToast('Please fill in all card details', 'warning'); return;
+      }
+    }
+
+    this.disabled = true; this.textContent = '⏳ Processing...';
+    const container = document.getElementById('alertContainer');
+    clearAlerts(container);
+
+    try {
+      const passengers = seatDetails.map((seat, i) => ({
+        full_name: document.querySelector(`.passenger-name[data-idx="${i}"]`).value,
+        age: parseInt(document.querySelector(`.passenger-age[data-idx="${i}"]`).value) || null,
+        gender: document.querySelector(`.passenger-gender[data-idx="${i}"]`).value || null,
+        id_proof_number: document.querySelector(`.passenger-id[data-idx="${i}"]`).value || null
+      }));
+
+      const bookingRes = await api.bookings.create({
+        schedule_id: parseInt(scheduleId),
+        travel_date: date,
+        seat_ids: seatIds,
+        passengers,
+        contact_phone: phone,
+        contact_email: email,
+        special_requests: document.getElementById('specialRequests').value || null
+      });
+
+      this.textContent = '⏳ Processing Payment...';
+
+      const paymentData = {
+        booking_id: bookingRes.booking.id,
+        payment_method: paymentMethod
+      };
+
+      if (paymentMethod === 'zimswitch') {
+        paymentData.card_number = document.getElementById('cardNumber').value || '4111111111111111';
+        paymentData.card_holder = document.getElementById('cardHolder').value || 'Test User';
+        paymentData.expiry = document.getElementById('cardExpiry').value || '12/25';
+        paymentData.cvv = document.getElementById('cardCvv').value || '123';
+      }
+
+      const paymentRes = await api.payments.process(paymentData);
+
+      if (paymentRes.success) {
+        if (paymentMethod === 'cash_on_departure') {
+          showToast('✅ Booking confirmed! Pay cash when boarding.', 'success', 5000);
+        } else if (paymentMethod === 'ecocash' || paymentMethod === 'onemoney') {
+          const label = paymentMethod === 'ecocash' ? 'EcoCash' : 'OneMoney';
+          showToast(`✅ Booking confirmed! Send $${totalAmount} via ${label} to ${paymentRes.merchant_number} (${paymentRes.merchant_name})`, 'success', 8000);
+        } else {
+          showToast('✅ Booking confirmed! Payment successful.', 'success');
+        }
+        window.location.href = `/customer/confirmation.html?booking=${bookingRes.booking.booking_reference}`;
+      } else {
+        showAlert(paymentRes.message || 'Payment failed', 'error', container);
+        this.disabled = false; this.textContent = '💳 Try Again';
+      }
+    } catch (err) {
+      showAlert(err.message, 'error', container);
+      this.disabled = false; this.textContent = '💳 Confirm Booking';
+    }
+  });
+
+  loadSummary();
+  </script>
+</body>
+</html>

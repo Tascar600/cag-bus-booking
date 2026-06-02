@@ -1,0 +1,4 @@
+Admin login error: Error: secretOrPrivateKey must have a value
+    at module.exports [as sign] (C:\Users\I'm_Tascar\Desktop\bus booking\backend\node_modules\jsonwebtoken\sign.js:111:20)
+    at C:\Users\I'm_Tascar\Desktop\bus booking\backend\routes\admin.js:36:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

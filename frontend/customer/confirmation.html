@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmed - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 Booking confirmed!</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <ul class="nav-menu"><li><a href="/" class="nav-link">🏠 Home</a></li><li><a href="/customer/my-bookings.html" class="nav-link">🎫 My Bookings</a></li></ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <div id="content"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const ref = new URLSearchParams(window.location.search).get('booking');
+  if (!ref) window.location.href = '/';
+
+  async function loadConfirmation() {
+    const container = document.getElementById('content');
+    try {
+      const data = await api.bookings.get(ref);
+      renderConfirmation(data);
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`;
+    }
+  }
+
+  function getPaymentMethodLabel(method) {
+    const labels = {
+      ecocash: '📱 EcoCash',
+      onemoney: '📱 OneMoney',
+      zimswitch: '💳 ZimSwitch Card',
+      cash_on_departure: '🚌 Cash on Departure',
+      credit_card: '💳 Credit Card',
+      debit_card: '💳 Debit Card',
+      upi: '📱 Mobile Money',
+      net_banking: '🏦 Bank Transfer',
+      wallet: '📱 ZiG Wallet'
+    };
+    return labels[method] || method;
+  }
+
+  function renderConfirmation(data) {
+    const pay = data.payment || {};
+    const paymentLabel = getPaymentMethodLabel(pay.payment_method);
+    const isPendingPayment = pay.payment_method === 'ecocash' || pay.payment_method === 'onemoney' || pay.payment_method === 'cash_on_departure';
+    const isEcocashOrOnemoney = pay.payment_method === 'ecocash' || pay.payment_method === 'onemoney';
+
+    document.getElementById('content').innerHTML = `
+      <div class="text-center mb-4" style="padding-top:20px">
+        <div style="font-size:4rem;color:var(--success);margin-bottom:8px">✅</div>
+        <h2>Booking Confirmed! 🎉</h2>
+        <p class="text-muted">Your e-ticket is ready. Show the QR code below when boarding.</p>
+      </div>
+
+      ${isPendingPayment ? `
+      <div class="card mb-3" style="border:2px solid var(--zm-gold);background:var(--zm-cream)">
+        <div class="card-body">
+          <h4 style="color:var(--zm-red)">⚠️ Payment Information</h4>
+          <p style="margin-top:8px"><strong>Payment Method:</strong> ${paymentLabel}</p>
+          ${isEcocashOrOnemoney ? `
+          <div style="background:white;border-radius:var(--radius);padding:16px;margin-top:12px">
+            <p style="font-weight:600">Please send your payment to:</p>
+            <p style="font-size:1.3rem;font-family:monospace;font-weight:700;margin:8px 0">📱 0781 059 106</p>
+            <p style="font-size:1rem"><strong>Takudzwa Isaya Masiwa</strong></p>
+            <p style="margin-top:8px">Amount: <strong>${formatCurrency(data.final_amount)}</strong></p>
+            <p style="font-size:0.82rem;color:var(--text-light);margin-top:8px">Your seat is reserved. Please make payment before departure.</p>
+          </div>
+          ` : `
+          <div style="background:white;border-radius:var(--radius);padding:16px;margin-top:12px">
+            <p style="font-weight:600">🚌 Pay Cash on Departure</p>
+            <p>Pay <strong>${formatCurrency(data.final_amount)}</strong> to the bus conductor before boarding.</p>
+            <p style="font-size:0.82rem;color:var(--text-light);margin-top:4px">Please have exact change in USD ready.</p>
+          </div>
+          `}
+        </div>
+      </div>
+      ` : `
+      <div class="card mb-3" style="border:1px solid var(--success);background:#f0fdf4">
+        <div class="card-body">
+          <p><strong>Payment Method:</strong> ${paymentLabel}</p>
+          <p><strong>Status:</strong> <span class="badge badge-green">Paid</span></p>
+          <p><strong>Amount:</strong> ${formatCurrency(data.final_amount)}</p>
+        </div>
+      </div>
+      `}
+
+      <div class="e-ticket">
+        <div class="e-ticket-header">
+          <h2>🇿🇼 CAG Bus Zimbabwe</h2>
+          <p style="opacity:0.9;font-size:0.9rem">E-Ticket • ${pay.payment_status === 'success' ? 'Paid' : 'Confirmed'}</p>
+          <div class="ticket-number">${data.booking_reference}</div>
+        </div>
+        <div class="e-ticket-body">
+          <div class="e-ticket-info">
+            <div><div class="label">Origin</div><div class="value">${data.origin}</div></div>
+            <div><div class="label">Destination</div><div class="value">${data.destination}</div></div>
+            <div><div class="label">Travel Date</div><div class="value">${formatDate(data.travel_date)}</div></div>
+            <div><div class="label">Departure</div><div class="value">${formatTime(data.departure_time)}</div></div>
+            <div><div class="label">Bus</div><div class="value">${data.bus_number} (${data.bus_type})</div></div>
+            <div><div class="label">Status</div><div class="value">${getStatusBadge(data.status)}</div></div>
+          </div>
+          <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+          <h4 class="mb-2">👤 Passenger(s)</h4>
+          ${data.passengers.map(p => `
+            <div class="flex-between mb-1" style="padding:8px 0;border-bottom:1px solid var(--bg)">
+              <span><strong>${p.full_name}</strong></span>
+              <span>Seat <strong>${p.seat_number}</strong> • ${p.ticket_number}</span>
+            </div>
+          `).join('')}
+          <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+          <div class="flex-between" style="font-size:1.15rem">
+            <span><strong>💰 Total</strong></span>
+            <span style="font-weight:800;color:var(--primary);font-size:1.3rem">${formatCurrency(data.final_amount)}</span>
+          </div>
+          <div class="flex-between" style="font-size:0.85rem">
+            <span class="text-muted">via ${paymentLabel}</span>
+            <span class="text-muted">${pay.payment_status === 'success' ? '✅ Paid' : '⏳ Payment pending'}</span>
+          </div>
+
+          <div class="e-ticket-qr">
+            <h5 class="mb-2">📱 Your Ticket QR Codes</h5>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">
+              ${data.passengers.map(p => `
+                <div style="text-align:center;background:var(--bg);padding:12px;border-radius:var(--radius)">
+                  <img src="${p.qr_code}" alt="QR" style="width:130px;height:130px;border-radius:var(--radius-sm)">
+                  <p style="font-size:0.7rem;margin-top:6px;font-family:monospace">${p.ticket_number}</p>
+                  <p style="font-size:0.7rem;color:var(--text-light)">${p.full_name}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="e-ticket-footer">
+          <p>🇿🇼 Present this e-ticket (QR code) to the conductor before boarding.</p>
+          <p class="mt-1" style="font-size:0.75rem">Cancellations: Free up to 24h before departure via "My Bookings"</p>
+        </div>
+      </div>
+
+      <div class="text-center mt-4 no-print" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Print Ticket</button>
+        <a href="/customer/my-bookings.html" class="btn btn-secondary">📋 My Bookings</a>
+        <a href="/" class="btn btn-secondary">🏠 Back to Home</a>
+      </div>
+    `;
+  }
+
+  loadConfirmation();
+  </script>
+</body>
+</html>

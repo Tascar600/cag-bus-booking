@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routes & Schedules - CAG Admin Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand"><span class="logo-icon" style="background:var(--zm-green-dark)">CAG</span><div><div>CAG Admin</div><div style="font-size:0.65rem;opacity:0.6">ZIMBABWE 🇿🇼</div></div></div>
+      <nav class="admin-sidebar-nav">
+        <a href="/admin/dashboard.html">📊 Dashboard</a>
+        <a href="/admin/buses.html">🚌 Buses</a>
+        <a href="/admin/routes.html" class="active">🛣 Routes & Schedules</a>
+        <a href="/admin/bookings.html">🎫 Bookings</a>
+        <a href="/admin/payments.html">💰 Payments</a>
+        <a href="/admin/customers.html">👥 Customers</a>
+        <a href="/admin/settings.html">⚙ Settings</a>
+        <a href="#" id="adminLogout" style="color:var(--danger)">🚪 Logout</a>
+      </nav>
+    </aside>
+    <main class="admin-main fade-in">
+      <div class="admin-header"><h1>🛣 Routes & Schedules</h1><div><button class="btn btn-primary" id="addRouteBtn">+ Add Route</button> <button class="btn btn-gold" id="addScheduleBtn">+ Add Schedule</button></div></div>
+      <div id="alertContainer"></div>
+      <div class="mb-3" style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm tab-btn active" data-tab="routes">🗺️ Routes</button>
+        <button class="btn btn-secondary btn-sm tab-btn" data-tab="schedules">🕐 Schedules</button>
+      </div>
+      <div id="routesTab"><div id="routesContainer"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div id="schedulesTab" style="display:none"><div id="schedulesContainer"><div class="loading"><div class="spinner"></div></div></div></div>
+    </main>
+  </div>
+
+  <!-- Route Modal -->
+  <div class="modal-overlay" id="routeModal">
+    <div class="modal"><div class="modal-header"><h3 id="routeModalTitle">🗺️ Add Route</h3><button class="modal-close" id="routeModalClose">&times;</button></div>
+      <div class="modal-body"><form id="routeForm"><input type="hidden" id="editRouteId">
+        <div class="form-row"><div class="form-group"><label class="form-label">Origin (Zimbabwe city) <span style="color:var(--danger)">*</span></label><input type="text" class="form-input" id="routeOrigin" placeholder="e.g. Harare" required></div><div class="form-group"><label class="form-label">Destination <span style="color:var(--danger)">*</span></label><input type="text" class="form-input" id="routeDestination" placeholder="e.g. Bulawayo" required></div></div>
+        <div class="form-row"><div class="form-group"><label class="form-label">Distance (km)</label><input type="number" class="form-input" id="routeDistance" step="0.1" placeholder="e.g. 439"></div><div class="form-group"><label class="form-label">Duration (min)</label><input type="number" class="form-input" id="routeDuration" placeholder="e.g. 330"></div></div>
+        <button type="submit" class="btn btn-primary">💾 Save Route</button>
+      </form></div>
+    </div>
+  </div>
+
+  <!-- Schedule Modal (Add/Edit) -->
+  <div class="modal-overlay" id="scheduleModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header"><h3 id="scheduleModalTitle">🕐 Add Schedule</h3><button class="modal-close" id="scheduleModalClose">&times;</button></div>
+      <div class="modal-body">
+        <form id="scheduleForm">
+          <input type="hidden" id="editScheduleId">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Route <span style="color:var(--danger)">*</span></label><select class="form-select" id="scheduleRoute" required></select></div>
+            <div class="form-group"><label class="form-label">Bus <span style="color:var(--danger)">*</span></label><select class="form-select" id="scheduleBus" required></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Departure Time <span style="color:var(--danger)">*</span></label><input type="time" class="form-input" id="scheduleDeparture" required></div>
+            <div class="form-group"><label class="form-label">Arrival Time <span style="color:var(--danger)">*</span></label><input type="time" class="form-input" id="scheduleArrival" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Base Price (USD) <span style="color:var(--danger)">*</span></label><input type="number" class="form-input" id="schedulePrice" step="0.01" min="1" placeholder="e.g. 35.00" required></div>
+            <div class="form-group"><label class="form-label">Driver</label><select class="form-select" id="scheduleDriver"><option value="">— No driver assigned —</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Operating Days</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px" id="operatingDaysCheckboxes">
+              <label class="form-check"><input type="checkbox" value="mon" checked> Mon</label>
+              <label class="form-check"><input type="checkbox" value="tue" checked> Tue</label>
+              <label class="form-check"><input type="checkbox" value="wed" checked> Wed</label>
+              <label class="form-check"><input type="checkbox" value="thu" checked> Thu</label>
+              <label class="form-check"><input type="checkbox" value="fri" checked> Fri</label>
+              <label class="form-check"><input type="checkbox" value="sat" checked> Sat</label>
+              <label class="form-check"><input type="checkbox" value="sun" checked> Sun</label>
+            </div>
+          </div>
+          <div class="form-group" id="scheduleStatusGroup" style="display:none"><label class="form-label">Status</label><select class="form-select" id="scheduleStatus"><option value="1">🟢 Active</option><option value="0">🔴 Inactive</option></select></div>
+          <div style="display:flex;gap:12px">
+            <button type="submit" class="btn btn-primary">💾 Save Schedule</button>
+            <button type="button" class="btn btn-secondary" id="scheduleCancelBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  if (!localStorage.getItem('cag_admin_token')) window.location.href = '/admin/login.html';
+  document.getElementById('adminLogout').addEventListener('click', (e) => { e.preventDefault(); adminLogout(); });
+
+  // ===== TABS =====
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(b => { b.className = b.className.replace('btn-primary', 'btn-secondary').replace('active', ''); });
+      this.className = this.className.replace('btn-secondary', 'btn-primary') + ' active';
+      document.getElementById('routesTab').style.display = this.dataset.tab === 'routes' ? 'block' : 'none';
+      document.getElementById('schedulesTab').style.display = this.dataset.tab === 'schedules' ? 'block' : 'none';
+    });
+  });
+
+  // ===== ROUTE MODAL =====
+  const routeModal = document.getElementById('routeModal');
+  document.getElementById('addRouteBtn').addEventListener('click', () => {
+    document.getElementById('editRouteId').value = '';
+    document.getElementById('routeModalTitle').textContent = '🗺️ Add New Route';
+    document.getElementById('routeForm').reset();
+    routeModal.classList.add('show');
+  });
+  document.getElementById('routeModalClose').addEventListener('click', () => routeModal.classList.remove('show'));
+  routeModal.addEventListener('click', (e) => { if (e.target === routeModal) routeModal.classList.remove('show'); });
+
+  // ===== SCHEDULE MODAL =====
+  const scheduleModal = document.getElementById('scheduleModal');
+
+  function resetScheduleModal(editMode) {
+    document.getElementById('editScheduleId').value = '';
+    document.getElementById('scheduleModalTitle').textContent = '🕐 Add New Schedule';
+    document.getElementById('scheduleForm').reset();
+    document.getElementById('scheduleStatusGroup').style.display = 'none';
+    document.getElementById('scheduleDeparture').value = '';
+    document.getElementById('scheduleArrival').value = '';
+    document.getElementById('schedulePrice').value = '';
+    document.getElementById('scheduleDriver').value = '';
+    document.querySelectorAll('#operatingDaysCheckboxes input').forEach(c => c.checked = true);
+  }
+
+  async function populateScheduleForm() {
+    const [routes, buses, drivers] = await Promise.all([
+      api.routes.list(),
+      api.buses.list(),
+      api.drivers.list()
+    ]);
+    document.getElementById('scheduleRoute').innerHTML = '<option value="">— Select route —</option>' +
+      routes.filter(r => r.is_active).map(r => `<option value="${r.id}">🇿🇼 ${r.origin} → ${r.destination}</option>`).join('');
+    document.getElementById('scheduleBus').innerHTML = '<option value="">— Select bus —</option>' +
+      buses.filter(b => b.is_active).map(b => `<option value="${b.id}">${b.bus_number} — ${b.bus_type.toUpperCase()} (${b.capacity} seats)</option>`).join('');
+    document.getElementById('scheduleDriver').innerHTML = '<option value="">— No driver assigned —</option>' +
+      drivers.map(d => `<option value="${d.id}">${d.full_name} (${d.phone})</option>`).join('');
+  }
+
+  document.getElementById('addScheduleBtn').addEventListener('click', async () => {
+    resetScheduleModal(false);
+    await populateScheduleForm();
+    scheduleModal.classList.add('show');
+  });
+
+  document.getElementById('scheduleModalClose').addEventListener('click', () => scheduleModal.classList.remove('show'));
+  document.getElementById('scheduleCancelBtn').addEventListener('click', () => scheduleModal.classList.remove('show'));
+  scheduleModal.addEventListener('click', (e) => { if (e.target === scheduleModal) scheduleModal.classList.remove('show'); });
+
+  function getOperatingDays() {
+    return Array.from(document.querySelectorAll('#operatingDaysCheckboxes input:checked')).map(c => c.value).join(',');
+  }
+  function setOperatingDays(str) {
+    const days = str ? str.split(',') : [];
+    document.querySelectorAll('#operatingDaysCheckboxes input').forEach(c => { c.checked = days.includes(c.value); });
+  }
+
+  function formatDuration(mins) {
+    if (!mins) return '-';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h + 'h ' + (m ? m + 'm' : '');
+  }
+  function getDayLabel(day) {
+    const labels = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+    return labels[day] || day;
+  }
+
+  // ===== LOAD ROUTES =====
+  async function loadRoutes() {
+    try {
+      const routes = await api.routes.list();
+      document.getElementById('routesContainer').innerHTML = `<div class="table-container"><table><thead><tr>
+        <th>Origin</th><th>Destination</th><th>Distance</th><th>Duration</th><th>Status</th><th>Actions</th>
+      </tr></thead><tbody>
+        ${routes.map(r => `<tr>
+          <td><strong>${r.origin}</strong></td>
+          <td><strong>${r.destination}</strong></td>
+          <td>${r.distance_km ? r.distance_km + ' km' : '<span class="text-muted">—</span>'}</td>
+          <td>${formatDuration(r.duration_minutes)}</td>
+          <td>${r.is_active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>'}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm editRoute" data-id="${r.id}">✏️ Edit</button>
+            ${r.is_active ? `<button class="btn btn-danger btn-sm deleteRoute" data-id="${r.id}">🚫</button>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+
+      document.querySelectorAll('.editRoute').forEach(btn => btn.addEventListener('click', async function() {
+        const r = await api.routes.get(this.dataset.id);
+        document.getElementById('editRouteId').value = r.id;
+        document.getElementById('routeModalTitle').textContent = '✏️ Edit Route: ' + r.origin + ' → ' + r.destination;
+        document.getElementById('routeOrigin').value = r.origin;
+        document.getElementById('routeDestination').value = r.destination;
+        document.getElementById('routeDistance').value = r.distance_km || '';
+        document.getElementById('routeDuration').value = r.duration_minutes || '';
+        routeModal.classList.add('show');
+      }));
+
+      document.querySelectorAll('.deleteRoute').forEach(btn => btn.addEventListener('click', async function() {
+        if (confirm('Deactivate this route? All associated schedules will remain but this route won\'t appear in searches.')) {
+          await api.routes.delete(this.dataset.id);
+          loadRoutes();
+          showToast('Route deactivated', 'info');
+        }
+      }));
+    } catch (err) { document.getElementById('routesContainer').innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`; }
+  }
+
+  // ===== LOAD SCHEDULES =====
+  async function loadSchedules() {
+    try {
+      const schedules = await api.get('/schedules');
+      document.getElementById('schedulesContainer').innerHTML = `<div class="table-container"><table><thead><tr>
+        <th>Route</th><th>Bus</th><th>Departure</th><th>Arrival</th><th>Duration</th><th>Price</th><th>Days</th><th>Driver</th><th>Status</th><th style="min-width:120px">Actions</th>
+      </tr></thead><tbody>
+        ${schedules.map(s => {
+          const days = s.operating_days ? s.operating_days.split(',').map(getDayLabel).join(', ') : 'Daily';
+          return `<tr>
+            <td><strong style="font-size:0.82rem">🇿🇼 ${s.origin} → ${s.destination}</strong></td>
+            <td style="font-size:0.82rem">${s.bus_number} <span class="text-muted">(${s.bus_type})</span></td>
+            <td><strong>${formatTime(s.departure_time)}</strong></td>
+            <td><strong>${formatTime(s.arrival_time)}</strong></td>
+            <td style="font-size:0.8rem">${formatDuration(s.duration_minutes)}</td>
+            <td><strong>${formatCurrency(s.base_price)}</strong></td>
+            <td style="font-size:0.7rem">${days.length > 25 ? days.slice(0, 25) + '...' : days}</td>
+            <td style="font-size:0.78rem">${s.driver_name || '<span class="text-muted">—</span>'}</td>
+            <td>${s.is_active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>'}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm editSchedule" data-id="${s.id}" title="Edit schedule">✏️ Edit</button>
+              ${s.is_active ? `<button class="btn btn-danger btn-sm deleteSchedule" data-id="${s.id}" title="Deactivate">🚫</button>` : `<button class="btn btn-success btn-sm activateSchedule" data-id="${s.id}" title="Activate">✅</button>`}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`;
+
+      document.querySelectorAll('.editSchedule').forEach(btn => btn.addEventListener('click', async function() {
+        const s = await api.schedules.get(this.dataset.id);
+        document.getElementById('editScheduleId').value = s.id;
+        document.getElementById('scheduleModalTitle').textContent = '✏️ Edit Schedule: ' + s.bus_number + ' — ' + s.origin + '→' + s.destination;
+
+        await populateScheduleForm();
+        document.getElementById('scheduleRoute').value = s.route_id;
+        document.getElementById('scheduleBus').value = s.bus_id;
+        document.getElementById('scheduleDeparture').value = s.departure_time.slice(0, 5);
+        document.getElementById('scheduleArrival').value = s.arrival_time.slice(0, 5);
+        document.getElementById('schedulePrice').value = s.base_price;
+        document.getElementById('scheduleDriver').value = s.driver_id || '';
+        setOperatingDays(s.operating_days);
+        document.getElementById('scheduleStatusGroup').style.display = 'block';
+        document.getElementById('scheduleStatus').value = s.is_active ? '1' : '0';
+        scheduleModal.classList.add('show');
+      }));
+
+      document.querySelectorAll('.deleteSchedule').forEach(btn => btn.addEventListener('click', async function() {
+        if (confirm('Deactivate this schedule? It won\'t appear in search results.')) {
+          await api.schedules.delete(this.dataset.id);
+          loadSchedules();
+          showToast('Schedule deactivated', 'info');
+        }
+      }));
+
+      document.querySelectorAll('.activateSchedule').forEach(btn => btn.addEventListener('click', async function() {
+        try {
+          const s = await api.schedules.get(this.dataset.id);
+          await api.schedules.update(this.dataset.id, {
+            route_id: s.route_id, bus_id: s.bus_id, driver_id: s.driver_id,
+            departure_time: s.departure_time, arrival_time: s.arrival_time,
+            base_price: s.base_price, operating_days: s.operating_days, is_active: 1
+          });
+          loadSchedules();
+          showToast('Schedule reactivated', 'success');
+        } catch (err) { showToast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      document.getElementById('schedulesContainer').innerHTML = `<div class="empty-state"><h3>${err.message}</h3></div>`;
+    }
+  }
+
+  // ===== ROUTE FORM =====
+  document.getElementById('routeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editRouteId').value;
+    const data = {
+      origin: document.getElementById('routeOrigin').value.trim(),
+      destination: document.getElementById('routeDestination').value.trim(),
+      distance_km: parseFloat(document.getElementById('routeDistance').value) || null,
+      duration_minutes: parseInt(document.getElementById('routeDuration').value) || null
+    };
+    try {
+      if (id) { await api.routes.update(id, data); } else { await api.routes.create(data); }
+      routeModal.classList.remove('show');
+      showToast(id ? 'Route updated successfully' : 'Route added successfully', 'success');
+      loadRoutes();
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+
+  // ===== SCHEDULE FORM =====
+  document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editScheduleId').value;
+    const data = {
+      route_id: parseInt(document.getElementById('scheduleRoute').value),
+      bus_id: parseInt(document.getElementById('scheduleBus').value),
+      driver_id: parseInt(document.getElementById('scheduleDriver').value) || null,
+      departure_time: document.getElementById('scheduleDeparture').value,
+      arrival_time: document.getElementById('scheduleArrival').value,
+      base_price: parseFloat(document.getElementById('schedulePrice').value),
+      operating_days: getOperatingDays()
+    };
+    if (id) data.is_active = parseInt(document.getElementById('scheduleStatus').value);
+
+    if (!data.route_id) { showToast('Please select a route', 'warning'); return; }
+    if (!data.bus_id) { showToast('Please select a bus', 'warning'); return; }
+    if (!data.departure_time) { showToast('Please enter departure time', 'warning'); return; }
+    if (!data.arrival_time) { showToast('Please enter arrival time', 'warning'); return; }
+    if (!data.base_price || data.base_price < 1) { showToast('Please enter a valid price', 'warning'); return; }
+
+    try {
+      if (id) { await api.schedules.update(id, data); } else { await api.schedules.create(data); }
+      scheduleModal.classList.remove('show');
+      showToast(id ? 'Schedule updated successfully' : 'Schedule created successfully', 'success');
+      loadSchedules();
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+
+  loadRoutes();
+  loadSchedules();
+  </script>
+</body>
+</html>
