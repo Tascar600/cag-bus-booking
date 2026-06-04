@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Fleet - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .bus-card { background:var(--zm-white);border-radius:16px;padding:24px;box-shadow:var(--shadow);border:1px solid var(--border);transition:var(--transition);display:flex;gap:20px;align-items:center }
+    .bus-card:hover { transform:translateY(-4px);box-shadow:var(--shadow-lg) }
+    .bus-icon { width:60px;height:60px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0 }
+    .bus-type-luxury { background:linear-gradient(135deg,#fbbf24,#f59e0b) }
+    .bus-type-ac { background:linear-gradient(135deg,#60a5fa,#3b82f6) }
+    .bus-type-sleeper { background:linear-gradient(135deg,#a78bfa,#8b5cf6) }
+    .bus-type-standard { background:linear-gradient(135deg,#34d399,#10b981) }
+    .bus-type-non_ac { background:linear-gradient(135deg,#f87171,#ef4444) }
+    .bus-info { flex:1 }
+    .bus-info h3 { margin:0 0 4px;font-size:1.1rem }
+    .bus-info .plate { font-family:monospace;font-size:0.82rem;color:var(--text-lighter);letter-spacing:1px }
+    .bus-details { display:flex;gap:24px;flex-wrap:wrap;margin-top:8px }
+    .bus-details span { font-size:0.85rem;color:var(--text-light) }
+    .amenity-tag { display:inline-block;background:var(--primary-bg);color:var(--primary);padding:2px 10px;border-radius:50px;font-size:0.72rem;margin:2px 2px 0 0 }
+    .grid-buses { display:grid;gap:16px }
+    .fleet-header { text-align:center;padding:40px 0 24px }
+    .fleet-header h1 { font-size:2rem;margin-bottom:8px }
+    .fleet-header p { color:var(--text-light);max-width:500px;margin:0 auto }
+    .filter-bar { display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;justify-content:center }
+    .filter-btn { padding:8px 20px;border-radius:50px;border:1px solid var(--border);background:var(--zm-white);cursor:pointer;font-size:0.85rem;transition:var(--transition) }
+    .filter-btn.active { background:var(--primary);color:white;border-color:var(--primary) }
+    .filter-btn:hover { border-color:var(--primary) }
+  </style>
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 Our Fleet</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <button class="nav-toggle" onclick="document.getElementById('navMenu').classList.toggle('show')"><span></span><span></span><span></span></button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/customer/buses.html" class="nav-link active">🚌 Our Fleet</a></li>
+        <li><a href="/customer/login.html" class="nav-link" id="navLogin">🔑 Login</a></li>
+        <li><a href="/customer/register.html" class="btn btn-primary btn-sm" id="navRegister">Sign Up Free</a></li>
+        <li style="display:none;align-items:center;gap:8px" id="navUserMenu">
+          <span class="nav-link" id="navUserName" style="cursor:default;background:var(--primary-bg);border-radius:50px;padding:4px 16px;font-weight:600"></span>
+          <a href="/customer/profile.html" class="nav-link">👤 Profile</a>
+          <a href="/customer/my-bookings.html" class="nav-link">🎫 My Bookings</a>
+          <a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <div class="fleet-header">
+        <h1>🚌 Our Fleet</h1>
+        <p>Explore our modern fleet of buses serving all routes across Zimbabwe</p>
+      </div>
+
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="all">All Buses</button>
+        <button class="filter-btn" data-filter="luxury">Luxury</button>
+        <button class="filter-btn" data-filter="ac">AC</button>
+        <button class="filter-btn" data-filter="standard">Standard</button>
+        <button class="filter-btn" data-filter="sleeper">Sleeper</button>
+      </div>
+
+      <div id="busesContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const token = localStorage.getItem('cag_token');
+  if (token) {
+    const user = JSON.parse(localStorage.getItem('cag_user') || '{}');
+    document.getElementById('navLogin').style.display = 'none';
+    document.getElementById('navRegister').style.display = 'none';
+    document.getElementById('navUserMenu').style.display = 'flex';
+    document.getElementById('navUserName').textContent = user.full_name || 'User';
+  }
+  document.getElementById('navLogout')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  const typeIcons = { luxury:'👑', ac:'❄️', standard:'🚌', sleeper:'🛏️', non_ac:'🪟' };
+  const typeLabels = { luxury:'Luxury', ac:'Air Conditioned', standard:'Standard', sleeper:'Sleeper', non_ac:'Non-AC' };
+
+  function getBusTypeClass(type) { return 'bus-type-' + (type || 'standard'); }
+
+  function renderBuses(buses) {
+    const container = document.getElementById('busesContainer');
+    if (!buses || buses.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🚌</div><h3>No buses in the fleet</h3><p class="text-muted">Check back later for available buses.</p></div>';
+      return;
+    }
+    container.innerHTML = '<div class="grid-buses">' + buses.map(b => {
+      const amenities = (b.amenities && typeof b.amenities === 'string') ? JSON.parse(b.amenities) : (b.amenities || []);
+      return `
+      <div class="bus-card">
+        <div class="bus-icon ${getBusTypeClass(b.bus_type)}">${typeIcons[b.bus_type] || '🚌'}</div>
+        <div class="bus-info">
+          <h3>${b.bus_number} <span class="plate">${b.plate_number}</span></h3>
+          <div class="bus-details">
+            <span>📋 ${typeLabels[b.bus_type] || b.bus_type}</span>
+            <span>💺 ${b.capacity} seats</span>
+            <span>📐 ${b.seat_layout || '2x2'} layout</span>
+          </div>
+          <div style="margin-top:8px">${amenities.map(a => `<span class="amenity-tag">${a}</span>`).join('')}</div>
+        </div>
+        <a href="/" class="btn btn-primary btn-sm">🔍 Search Routes</a>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  let allBuses = [];
+
+  async function loadBuses() {
+    const container = document.getElementById('busesContainer');
+    try {
+      allBuses = await api.buses.list();
+      renderBuses(allBuses);
+    } catch(e) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Failed to load fleet</h3><p class="text-muted">Please try again later.</p></div>';
+    }
+  }
+
+  // Filter buttons
+  document.getElementById('filterBar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    if (filter === 'all') renderBuses(allBuses);
+    else renderBuses(allBuses.filter(b => b.bus_type === filter));
+  });
+
+  loadBuses();
+  </script>
+</body>
+</html>
