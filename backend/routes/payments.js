@@ -160,7 +160,7 @@ router.post('/process', authenticateUser, async (req, res) => {
         });
       } else {
         await connection.query(
-          'UPDATE seats s JOIN booking_passengers bp ON s.id = bp.seat_id SET s.is_booked = FALSE WHERE bp.booking_id = ?',
+          'UPDATE seats SET is_booked = FALSE WHERE id IN (SELECT seat_id FROM booking_passengers WHERE booking_id = ?)',
           [booking_id]
         );
         await connection.query(

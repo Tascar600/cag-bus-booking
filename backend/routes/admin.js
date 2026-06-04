@@ -31,7 +31,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Update last login
-    await pool.query('UPDATE admins SET last_login = NOW() WHERE id = ?', [admin.id]);
+    await pool.query("UPDATE admins SET last_login = datetime('now') WHERE id = ?", [admin.id]);
 
     const token = jwt.sign(
       { id: admin.id, username: admin.username, full_name: admin.full_name, role: admin.role },
@@ -75,7 +75,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
   try {
     // Today's bookings
     const [todayBookings] = await pool.query(
-      "SELECT COUNT(*) AS total, COALESCE(SUM(final_amount), 0) AS revenue FROM bookings WHERE DATE(booking_date) = CURDATE()"
+      "SELECT COUNT(*) AS total, COALESCE(SUM(final_amount), 0) AS revenue FROM bookings WHERE date(booking_date) = date('now')"
     );
 
     // Total active buses
@@ -110,9 +110,9 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
 
     // Monthly revenue (last 6 months)
     const [monthlyRevenue] = await pool.query(`
-      SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount) AS revenue
+      SELECT strftime('%Y-%m', payment_date) AS month, SUM(amount) AS revenue
       FROM payments
-      WHERE payment_status = 'success' AND payment_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+      WHERE payment_status = 'success' AND payment_date >= datetime('now', '-6 months')
       GROUP BY month ORDER BY month
     `);
 

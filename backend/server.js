@@ -3,8 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const mysql = require('mysql2/promise');
 require('dotenv').config({ path: __dirname + '/.env' });
 
 const authRoutes = require('./routes/auth');
@@ -59,56 +57,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Bootstrap admin account on startup
-async function bootstrapAdmin() {
-  try {
-    const conn = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'cag_bus_booking',
-    });
-    const hash = await bcrypt.hash('1234', 12);
-    const [existing] = await conn.query('SELECT id FROM admins WHERE username = ? OR email = ?', ['admin', 'ruvmudzingwa@gmail.com']);
-    if (existing.length === 0) {
-      await conn.query('INSERT INTO admins (username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?)', ['admin', 'ruvmudzingwa@gmail.com', hash, 'Super Admin', 'super_admin']);
-      console.log('Admin account created: ruvmudzingwa@gmail.com / 1234');
-    } else {
-      await conn.query('UPDATE admins SET email = ?, password_hash = ?, full_name = ? WHERE id = ?', ['ruvmudzingwa@gmail.com', hash, 'Super Admin', existing[0].id]);
-      console.log('Admin account updated: ruvmudzingwa@gmail.com / 1234');
-    }
-    await conn.end();
-  } catch (err) {
-    console.error('Admin bootstrap error:', err.message);
-  }
-}
-
-// Also allow manual trigger via URL
-app.all('/api/admin/bootstrap', async (req, res) => {
-  try {
-    const conn = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'cag_bus_booking',
-    });
-    const hash = await bcrypt.hash('1234', 12);
-    const [existing] = await conn.query('SELECT id FROM admins WHERE username = ? OR email = ?', ['admin', 'ruvmudzingwa@gmail.com']);
-    if (existing.length === 0) {
-      await conn.query('INSERT INTO admins (username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?)', ['admin', 'ruvmudzingwa@gmail.com', hash, 'Super Admin', 'super_admin']);
-      res.json({ message: 'Admin created', email: 'ruvmudzingwa@gmail.com', password: '1234' });
-    } else {
-      await conn.query('UPDATE admins SET email = ?, password_hash = ?, full_name = ? WHERE id = ?', ['ruvmudzingwa@gmail.com', hash, 'Super Admin', existing[0].id]);
-      res.json({ message: 'Admin updated', email: 'ruvmudzingwa@gmail.com', password: '1234' });
-    }
-    await conn.end();
-  } catch (err) {
-    console.error('Bootstrap error:', err.message);
-    res.status(500).json({ error: 'Bootstrap failed: ' + err.message });
-  }
-});
+// Bootstrap is handled by config/db.js on startup
 
 // Serve SPA fallback
 app.get('*', (req, res) => {
@@ -121,7 +70,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-bootstrapAdmin();
 app.listen(PORT, () => {
   console.log(`CAG Bus Booking Server running on http://localhost:${PORT}`);
 });

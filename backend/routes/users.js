@@ -28,7 +28,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
 router.get('/stats', authenticateAdmin, async (req, res) => {
   try {
     const [totalUsers] = await pool.query('SELECT COUNT(*) AS total FROM users WHERE is_active = TRUE');
-    const [newUsers] = await pool.query('SELECT COUNT(*) AS total FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+    const [newUsers] = await pool.query("SELECT COUNT(*) AS total FROM users WHERE created_at >= datetime('now', '-30 days')");
     res.json({
       total: totalUsers[0].total,
       new_last_30_days: newUsers[0].total

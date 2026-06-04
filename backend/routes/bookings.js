@@ -20,9 +20,10 @@ router.post('/create', authenticateUser, async (req, res) => {
     }
 
     // Verify seats are still available
+    const seatPlaceholders = seat_ids.map(() => '?').join(',');
     const [bookedSeats] = await connection.query(
-      'SELECT id, seat_number, price FROM seats WHERE id IN (?) AND schedule_id = ? AND travel_date = ? AND is_booked = TRUE',
-      [seat_ids, schedule_id, travel_date]
+      `SELECT id, seat_number, price FROM seats WHERE id IN (${seatPlaceholders}) AND schedule_id = ? AND travel_date = ? AND is_booked = TRUE`,
+      [...seat_ids, schedule_id, travel_date]
     );
 
     if (bookedSeats.length > 0) {
@@ -34,9 +35,10 @@ router.post('/create', authenticateUser, async (req, res) => {
     }
 
     // Calculate total
+    const seatIdPlaceholders = seat_ids.map(() => '?').join(',');
     const [seatPrices] = await connection.query(
-      'SELECT SUM(price) AS total FROM seats WHERE id IN (?)',
-      [seat_ids]
+      `SELECT SUM(price) AS total FROM seats WHERE id IN (${seatIdPlaceholders})`,
+      [...seat_ids]
     );
     const subtotal = parseFloat(seatPrices[0].total) || 0;
     const tax = subtotal * 0.05;
@@ -210,7 +212,7 @@ router.put('/:id/cancel', authenticateUser, async (req, res) => {
 
     // Free up seats
     await connection.query(
-      'UPDATE seats s JOIN booking_passengers bp ON s.id = bp.seat_id SET s.is_booked = FALSE WHERE bp.booking_id = ?',
+      'UPDATE seats SET is_booked = FALSE WHERE id IN (SELECT seat_id FROM booking_passengers WHERE booking_id = ?)',
       [req.params.id]
     );
 

@@ -91,9 +91,10 @@ router.get('/:scheduleId/:date', async (req, res) => {
 router.post('/check-availability', async (req, res) => {
   try {
     const { schedule_id, travel_date, seat_ids } = req.body;
+    const placeholders = seat_ids.map(() => '?').join(',');
     const [booked] = await pool.query(
-      'SELECT id, seat_number FROM seats WHERE id IN (?) AND schedule_id = ? AND travel_date = ? AND is_booked = TRUE',
-      [seat_ids, schedule_id, travel_date]
+      `SELECT id, seat_number FROM seats WHERE id IN (${placeholders}) AND schedule_id = ? AND travel_date = ? AND is_booked = TRUE`,
+      [...seat_ids, schedule_id, travel_date]
     );
 
     if (booked.length > 0) {

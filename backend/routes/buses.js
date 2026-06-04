@@ -53,7 +53,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
 
     res.status(201).json({ message: 'Bus added successfully', id: result.insertId });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'SQLITE_CONSTRAINT') {
       return res.status(409).json({ error: 'Bus number or plate already exists' });
     }
     res.status(500).json({ error: 'Failed to add bus' });
