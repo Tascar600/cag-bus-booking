@@ -60,7 +60,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Bootstrap admin account - creates admin on first request
-app.post('/api/admin/bootstrap', async (req, res) => {
+app.all('/api/admin/bootstrap', async (req, res) => {
   try {
     const conn = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',

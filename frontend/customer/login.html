@@ -45,11 +45,23 @@
     clearAlerts(container);
     const btn = e.target.querySelector('button');
     btn.disabled = true; btn.textContent = '⏳ Signing in...';
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
     try {
-      const res = await api.auth.login(
-        document.getElementById('email').value,
-        document.getElementById('password').value
-      );
+      // First try admin login
+      try {
+        const adminRes = await api.admin.login(email, password);
+        localStorage.setItem('cag_admin_token', adminRes.token);
+        localStorage.setItem('cag_admin_user', JSON.stringify(adminRes.admin));
+        showToast('✅ Welcome, ' + adminRes.admin.full_name + '!', 'success');
+        setTimeout(() => window.location.href = '/admin/dashboard.html', 500);
+        return;
+      } catch (adminErr) {
+        // Not an admin — try customer login
+      }
+
+      const res = await api.auth.login(email, password);
       localStorage.setItem('cag_token', res.token);
       localStorage.setItem('cag_user', JSON.stringify(res.user));
       const redirect = new URLSearchParams(window.location.search).get('redirect') || '/';
