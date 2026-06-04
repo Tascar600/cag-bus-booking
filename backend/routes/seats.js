@@ -45,7 +45,7 @@ router.get('/:scheduleId/:date', async (req, res) => {
 
           seats.push([
             scheduleId, date, seatNumber, r, c, seatType,
-            schedule.base_price, false
+            schedule.base_price, 0
           ]);
           seatNum++;
           if (seatNum > schedule.capacity) break;
