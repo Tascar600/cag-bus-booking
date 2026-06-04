@@ -314,7 +314,47 @@ function seedData() {
   uInsert.run('Rumbidzai Sithole','rumbi@example.co.zw','+263 77 400 0004',uHash,'12 Roberts Street, Gweru','1992-05-30');
   uInsert.run('Kudakwashe Mhere','kuda@example.co.zw','+263 78 500 0005',uHash,'56 Main Road, Masvingo','1985-09-12');
 
-  console.log('Sample data seeded: buses, routes, drivers, users');
+  // Seed schedules linking routes → buses → drivers
+  const allRoutes = db.prepare("SELECT id, distance_km, duration_minutes FROM routes").all();
+  const allBuses = db.prepare("SELECT id FROM buses").all();
+  const allDrivers = db.prepare("SELECT id FROM drivers").all();
+  const schedInsert = db.prepare("INSERT INTO schedules (route_id, bus_id, driver_id, departure_time, arrival_time, base_price, operating_days) VALUES (?, ?, ?, ?, ?, ?, ?)");
+  const departures = ['06:00','07:30','09:00','10:30','12:00','13:30','15:00','16:30','18:00','19:30','21:00','22:30'];
+  const pricePerKm = { standard: 0.08, ac: 0.12, luxury: 0.18, sleeper: 0.25 };
+  let schedCount = 0;
+  for (let ri = 0; ri < allRoutes.length; ri++) {
+    const route = allRoutes[ri];
+    const bus = allBuses[ri % allBuses.length];
+    const driver = allDrivers[ri % allDrivers.length];
+    const busInfo = db.prepare("SELECT bus_type FROM buses WHERE id = ?").get(bus.id);
+    const rate = pricePerKm[busInfo.bus_type] || 0.1;
+    const price = Math.round(route.distance_km * rate * 100) / 100;
+    const depIdx = ri % departures.length;
+    const depTime = departures[depIdx];
+    const depMinutes = parseInt(depTime.split(':')[0]) * 60 + parseInt(depTime.split(':')[1]);
+    const arrMinutes = depMinutes + route.duration_minutes;
+    const arrH = Math.floor(arrMinutes / 60) % 24;
+    const arrM = arrMinutes % 60;
+    const arrTime = String(arrH).padStart(2,'0') + ':' + String(arrM).padStart(2,'0');
+    schedInsert.run(route.id, bus.id, driver.id, depTime, arrTime, Math.max(price, 5), 'mon,tue,wed,thu,fri,sat,sun');
+    schedCount++;
+    // Add a second departure for popular routes (morning + afternoon)
+    if (ri < 10) {
+      const bus2 = allBuses[(ri + 2) % allBuses.length];
+      const driver2 = allDrivers[(ri + 3) % allDrivers.length];
+      const dep2 = departures[(depIdx + 4) % departures.length];
+      const depMin2 = parseInt(dep2.split(':')[0]) * 60 + parseInt(dep2.split(':')[1]);
+      const arrMin2 = depMin2 + route.duration_minutes;
+      const arrH2 = Math.floor(arrMin2 / 60) % 24;
+      const arrM2 = arrMin2 % 60;
+      const arr2 = String(arrH2).padStart(2,'0') + ':' + String(arrM2).padStart(2,'0');
+      schedInsert.run(route.id, bus2.id, driver2.id, dep2, arr2, Math.max(price, 5), 'mon,tue,wed,thu,fri,sat,sun');
+      schedCount++;
+    }
+  }
+  console.log('Schedules seeded: ' + schedCount);
+
+  console.log('Sample data seeded: buses, routes, drivers, users, schedules');
 }
 
 const isNew = initSchema();
