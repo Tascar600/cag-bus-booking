@@ -17,6 +17,7 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const seatRoutes = require('./routes/seats');
 const driverRoutes = require('./routes/drivers');
+const populateFull = require('./seed-full');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,6 +59,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // Bootstrap is handled by config/db.js on startup
+
+// Dev: populate full database with sample data
+app.post('/api/seed/full', async (req, res) => {
+  try {
+    const pool = require('./config/db');
+    await populateFull(pool);
+    res.json({ success: true, message: 'Database fully populated' });
+  } catch (err) {
+    console.error('Seed error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Serve SPA fallback
 app.get('*', (req, res) => {

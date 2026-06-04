@@ -3,3 +3,7 @@ node_modules/
 *.log
 .DS_Store
 backend/data/
+
+# Test logs
+backend/seed*_out.txt
+backend/seed*_err.txt
