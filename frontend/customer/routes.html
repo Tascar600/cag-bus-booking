@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Routes - CAG Bus Zimbabwe</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .route-card-cust { background:var(--zm-white);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);border:1px solid var(--border);transition:var(--transition);display:flex;gap:20px;align-items:center }
+    .route-card-cust:hover { transform:translateY(-4px);box-shadow:var(--shadow-lg) }
+    .route-icon { width:56px;height:56px;border-radius:50%;background:var(--primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0 }
+    .route-info { flex:1 }
+    .route-info h3 { margin:0;font-size:1.05rem;color:var(--text) }
+    .route-info .route-meta { display:flex;gap:20px;flex-wrap:wrap;margin-top:6px }
+    .route-info .route-meta span { font-size:0.82rem;color:var(--text-light) }
+    .route-tag { display:inline-block;padding:2px 12px;border-radius:50px;font-size:0.72rem;font-weight:600 }
+    .route-tag.active { background:#d1fae5;color:#065f46 }
+    .route-tag.inactive { background:#fee2e2;color:#991b1b }
+    .grid-routes { display:grid;gap:12px }
+    .page-header { text-align:center;padding:32px 0 20px }
+    .page-header h1 { font-size:1.8rem;margin-bottom:6px }
+    .page-header p { color:var(--text-light);font-size:0.9rem }
+    .search-route-input { max-width:400px;margin:16px auto;display:flex;gap:8px }
+    .search-route-input input { flex:1;padding:10px 16px;border-radius:50px;border:1px solid var(--border);font-size:0.9rem }
+    .origin-badge { display:inline-block;background:var(--primary-bg);color:var(--primary);padding:4px 16px;border-radius:50px;font-size:0.78rem;font-weight:600;margin:4px;cursor:pointer;transition:var(--transition) }
+    .origin-badge:hover { background:var(--primary);color:white }
+    .origin-filter-wrap { display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:16px;padding:12px 0 }
+  </style>
+</head>
+<body>
+  <div class="animated-bg"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+  <div id="toastContainer" class="toast-container"></div>
+  <div class="liveline"><div class="container"><div class="liveline-left"><span class="live-dot"></span><span>🇿🇼 All Routes</span></div><div class="liveline-right"><span class="live-clock" id="liveClock">Loading...</span></div></div></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="navbar-brand"><span class="logo-icon">CAG</span><div><span class="logo-text">CAG Bus</span><span class="logo-zim">ZIMBABWE 🇿🇼</span></div></a>
+      <button class="nav-toggle" onclick="document.getElementById('navMenu').classList.toggle('show')"><span></span><span></span><span></span></button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/customer/buses.html" class="nav-link">🚌 Our Fleet</a></li>
+        <li><a href="/customer/routes.html" class="nav-link active">🗺️ All Routes</a></li>
+        <li><a href="/customer/my-bookings.html" class="nav-link" id="navBookings" style="display:none">🎫 My Bookings</a></li>
+        <li><a href="/customer/login.html" class="nav-link" id="navLogin">🔑 Login</a></li>
+        <li><a href="/customer/register.html" class="btn btn-primary btn-sm" id="navRegister">Sign Up Free</a></li>
+        <li style="display:none;align-items:center;gap:8px" id="navUserMenu">
+          <span class="nav-link" id="navUserName" style="cursor:default;background:var(--primary-bg);border-radius:50px;padding:4px 16px;font-weight:600"></span>
+          <a href="/customer/profile.html" class="nav-link">👤 Profile</a>
+          <a href="#" class="nav-link" id="navLogout" style="color:var(--danger)">🚪 Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-wrapper fade-in">
+    <div class="container">
+      <div class="page-header">
+        <h1>🗺️ All Routes</h1>
+        <p>Browse every route we serve across Zimbabwe — search or filter to find your journey</p>
+        <div class="search-route-input">
+          <input type="text" id="routeSearch" placeholder="🔍 Search by city name..." oninput="filterRoutes()">
+        </div>
+      </div>
+
+      <div class="origin-filter-wrap" id="originFilters"></div>
+
+      <div id="routesContainer"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+  const token = localStorage.getItem('cag_token');
+  if (token) {
+    const user = JSON.parse(localStorage.getItem('cag_user') || '{}');
+    document.getElementById('navLogin').style.display = 'none';
+    document.getElementById('navRegister').style.display = 'none';
+    document.getElementById('navUserMenu').style.display = 'flex';
+    document.getElementById('navUserName').textContent = user.full_name || 'User';
+  }
+  document.getElementById('navLogout')?.addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  let allRoutes = [];
+  let activeOrigin = '';
+
+  function renderRoutes(routes) {
+    const container = document.getElementById('routesContainer');
+    if (!routes || routes.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><h3>No routes found</h3><p class="text-muted">Try a different search or check back later</p></div>';
+      return;
+    }
+    container.innerHTML = '<div class="grid-routes">' + routes.map(r => {
+      const today = new Date().toISOString().split('T')[0];
+      const searchUrl = `/customer/search-results.html?origin=${encodeURIComponent(r.origin)}&destination=${encodeURIComponent(r.destination)}&date=${today}`;
+      return `
+      <div class="route-card-cust">
+        <div class="route-icon">${getRouteEmoji(r.origin)}</div>
+        <div class="route-info">
+          <h3>${r.origin} → ${r.destination}</h3>
+          <div class="route-meta">
+            <span>📏 ${r.distance_km || '-'} km</span>
+            <span>⏱️ ${r.duration_minutes ? Math.floor(r.duration_minutes/60)+'h '+r.duration_minutes%60+'m' : '-'}</span>
+            <span class="route-tag ${r.is_active ? 'active' : 'inactive'}">${r.is_active ? 'Active' : 'Inactive'}</span>
+          </div>
+        </div>
+        <a href="${searchUrl}" class="btn btn-primary btn-sm">🔍 Search Buses</a>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  function getRouteEmoji(city) {
+    const map = { 'Harare':'🇿🇼','Bulawayo':'🏛️','Mutare':'🌄','Victoria Falls':'🌊','Masvingo':'🏰','Gweru':'🏙️','Kwekwe':'⚙️','Kadoma':'🌾','Chinhoyi':'🏞️','Beitbridge':'🌉','Hwange':'🦁','Kariba':'🌅','Chiredzi':'🌴','Nyanga':'⛰️' };
+    return map[city] || '📍';
+  }
+
+  function buildOriginFilters(routes) {
+    const origins = [...new Set(routes.map(r => r.origin))].sort();
+    const wrap = document.getElementById('originFilters');
+    wrap.innerHTML = '<span class="origin-badge" onclick="filterByOrigin(\'\')">🌍 All</span>' +
+      origins.map(o => `<span class="origin-badge" onclick="filterByOrigin('${o}')">${getRouteEmoji(o)} ${o}</span>`).join('');
+  }
+
+  function filterByOrigin(origin) {
+    activeOrigin = origin;
+    document.querySelectorAll('.origin-badge').forEach(b => b.style.background = '');
+    if (origin) event.target.style.background = 'var(--primary)';
+    applyFilters();
+  }
+
+  function filterRoutes() {
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const search = document.getElementById('routeSearch').value.toLowerCase().trim();
+    let filtered = allRoutes;
+    if (activeOrigin) filtered = filtered.filter(r => r.origin === activeOrigin);
+    if (search) filtered = filtered.filter(r => r.origin.toLowerCase().includes(search) || r.destination.toLowerCase().includes(search));
+    renderRoutes(filtered);
+  }
+
+  async function loadRoutes() {
+    const container = document.getElementById('routesContainer');
+    try {
+      allRoutes = await api.routes.list();
+      if (!allRoutes || allRoutes.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><h3>No routes available</h3><p class="text-muted">Routes will appear here once added by administration.</p></div>';
+        return;
+      }
+      buildOriginFilters(allRoutes);
+      renderRoutes(allRoutes);
+    } catch(e) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Failed to load routes</h3><p class="text-muted">Please try again later.</p></div>';
+    }
+  }
+
+  loadRoutes();
+  </script>
+</body>
+</html>

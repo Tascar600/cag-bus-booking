@@ -51,6 +51,7 @@
       <ul class="nav-menu" id="navMenu">
         <li><a href="/" class="nav-link active">🏠 Home</a></li>
         <li><a href="/customer/buses.html" class="nav-link">🚌 Our Fleet</a></li>
+        <li><a href="/customer/routes.html" class="nav-link">🗺️ All Routes</a></li>
         <li><a href="/customer/my-bookings.html" class="nav-link" id="navBookings" style="display:none">🎫 My Bookings</a></li>
         <li><a href="/customer/login.html" class="nav-link" id="navLogin">🔑 Login</a></li>
         <li><a href="/customer/register.html" class="btn btn-primary btn-sm" id="navRegister">Sign Up Free</a></li>
@@ -157,16 +158,22 @@
     </div>
   </section>
 
-  <!-- Browse Our Fleet -->
+  <!-- Browse Our Fleet & Routes -->
   <section class="section" style="background:var(--zm-white)">
     <div class="container">
-      <div class="text-center mb-4">
-        <h2 class="section-title">🚌 Browse Our Fleet</h2>
-        <p class="section-subtitle" style="margin-left:auto;margin-right:auto">View all buses in our fleet — no search needed</p>
-      </div>
-      <div class="text-center">
-        <a href="/customer/buses.html" class="btn btn-gold btn-lg">👁️ View All Buses →</a>
-        <p class="text-muted" style="margin-top:12px;font-size:0.85rem">See bus types, capacity, amenities, and seat layouts</p>
+      <div class="grid-2" style="max-width:800px;margin:0 auto">
+        <div class="text-center card" style="padding:32px 24px">
+          <div style="font-size:2.5rem;margin-bottom:12px">🚌</div>
+          <h3>Our Fleet</h3>
+          <p class="text-muted" style="font-size:0.85rem">View all buses with types, capacity, and amenities</p>
+          <a href="/customer/buses.html" class="btn btn-primary mt-2">👁️ View All Buses →</a>
+        </div>
+        <div class="text-center card" style="padding:32px 24px">
+          <div style="font-size:2.5rem;margin-bottom:12px">🗺️</div>
+          <h3>All Routes</h3>
+          <p class="text-muted" style="font-size:0.85rem">Browse every route we serve across Zimbabwe</p>
+          <a href="/customer/routes.html" class="btn btn-primary mt-2">🗺️ View All Routes →</a>
+        </div>
       </div>
     </div>
   </section>
